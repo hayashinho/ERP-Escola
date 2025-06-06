@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone # Para default em grading_date e outros
 
 from apps.students.models import GradeLevel, Student # Importar GradeLevel e Student do app students
+from apps.accounts.models import User # Import User model for limit_choices_to
 
 class SchoolYear(models.Model):
     """
@@ -527,3 +528,94 @@ class TeacherAssignment(models.Model):
 
     def __str__(self):
         return f'{self.teacher} - {self.subject} em {self.school_class} ({self.school_year})'
+
+
+class Announcement(models.Model):
+    """
+    Modelo para Comunicados Escolares.
+    """
+    title = models.CharField(
+        _('title'),
+        max_length=255
+    )
+    content = models.TextField(
+        _('content')
+    )
+    publication_date = models.DateTimeField(
+        _('publication date'),
+        auto_now_add=True
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='authored_announcements',
+        verbose_name=_('author'),
+        limit_choices_to={'user_type__in': [User.USER_TYPE_STAFF, User.USER_TYPE_ADMIN, User.USER_TYPE_TEACHER]}
+    )
+    # Targeting fields
+    target_user_types = models.JSONField(
+        _('target user types'),
+        null=True,
+        blank=True,
+        help_text=_("Lista de tipos de usuários que devem ver este comunicado, ex: ['STUDENT', 'PARENT']. Deixe em branco para todos os tipos aplicáveis por outras regras de direcionamento.")
+    )
+    target_grade_levels = models.ManyToManyField(
+        GradeLevel, # Assuming GradeLevel is imported from apps.students.models
+        blank=True,
+        related_name='announcements',
+        verbose_name=_('target grade levels'),
+        help_text=_('Selecione as séries específicas para este comunicado. Vazio significa todas as séries aplicáveis por outras regras.')
+    )
+    target_school_classes = models.ManyToManyField(
+        SchoolClass,
+        blank=True,
+        related_name='announcements',
+        verbose_name=_('target school classes'),
+        help_text=_('Selecione as turmas específicas. Vazio significa todas as turmas aplicáveis por outras regras.')
+    )
+    is_school_wide = models.BooleanField(
+        _('is school-wide?'),
+        default=False,
+        help_text=_('Marque se o comunicado é para toda a escola (ignora outros direcionamentos específicos se marcado).')
+    )
+    expiry_date = models.DateTimeField(
+        _('expiry date'),
+        null=True,
+        blank=True,
+        help_text=_('Data após a qual o comunicado não será mais exibido proeminentemente.')
+    )
+
+    class Meta:
+        verbose_name = _('Announcement')
+        verbose_name_plural = _('Announcements')
+        ordering = ['-publication_date']
+
+    def __str__(self):
+        return self.title
+
+    def clean(self):
+        super().clean()
+        # Example validation: if is_school_wide is True, other targeting fields might be redundant
+        # or should ideally be empty. This depends on desired strictness.
+        # For now, we allow them to be set, but UI/UX should guide user.
+        if self.target_user_types:
+            from apps.accounts.models import User # Local import to avoid circularity if User model imports from academics
+            valid_user_types = [choice[0] for choice in User.USER_TYPE_CHOICES]
+            for user_type in self.target_user_types:
+                if user_type not in valid_user_types:
+                    raise ValidationError(
+                        _("Tipo de usuário inválido '%(user_type)s' em 'target_user_types'. Escolha de: %(valid_types)s") %
+                        {'user_type': user_type, 'valid_types': ", ".join(valid_user_types)}
+                    )
+
+        if self.expiry_date and self.expiry_date < timezone.now(): # Use timezone.now() for datetime comparison
+            raise ValidationError(_("A data de expiração não pode ser no passado."))
+
+    def save(self, *args, **kwargs):
+        # Ensure author is set if not already (e.g. if created via admin panel without perform_create)
+        # This is more a safeguard; perform_create in ViewSet is primary for setting author.
+        # if not self.author_id and hasattr(self, '_current_user') and self._current_user and self._current_user.is_authenticated:
+        #     self.author = self._current_user
+        self.full_clean()
+        super().save(*args, **kwargs)

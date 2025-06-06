@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 from rest_framework import viewsets, status, serializers as drf_serializers
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from django.utils import timezone # Added timezone import
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser # Importar parsers para upload
@@ -388,3 +389,334 @@ class TeacherDidacticMaterialViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     # perform_destroy já está protegido pelo get_queryset.
+
+
+from .serializers import EnrollmentSerializer # Import EnrollmentSerializer
+
+class EnrollmentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Student Enrollments in SchoolClasses.
+    Allows creation, update (status), listing, and retrieval.
+    """
+    queryset = Enrollment.objects.all().select_related(
+        'student__user',
+        'school_class__grade_level',
+        'school_class__school_year'
+    ).order_by('-enrollment_date')
+    serializer_class = EnrollmentSerializer
+    permission_classes = [IsAdminUser] # Or a more specific 'Secretaria' permission
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options'] # Allow DELETE if policy permits
+
+    # Add filtering capabilities
+    filterset_fields = {
+        'student': ['exact'],
+        'student__user__username': ['exact', 'icontains'],
+        'school_class': ['exact'],
+        'school_class__school_year': ['exact'],
+        'school_class__school_year__year': ['exact', 'gte', 'lte'],
+        'school_class__grade_level': ['exact'],
+        'school_class__grade_level__name': ['exact', 'icontains'],
+        'status': ['exact'],
+        'enrollment_date': ['exact', 'gte', 'lte'],
+    }
+
+    # perform_create: Handled by EnrollmentSerializer's create and validation logic.
+    # perform_update: Handled by EnrollmentSerializer's update and validation logic.
+    # perform_destroy: Default behavior is fine unless specific logic is needed.
+    # Ensure that if an enrollment is deleted, related objects like grades/attendance
+    # are handled according to policy (CASCADE is default on models shown, which might be too aggressive).
+    # Consider soft-delete or archival strategies in a real-world scenario.
+
+
+from django.db import transaction
+from apps.students.models import GradeLevel # Ensure GradeLevel from students.models is imported
+from .serializers import SchoolYearSerializer, BatchReenrollSerializer # Import necessary serializers
+
+class SchoolYearViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing SchoolYears.
+    Includes a custom action for batch re-enrollment of students.
+    """
+    queryset = SchoolYear.objects.all().order_by('-year')
+    serializer_class = SchoolYearSerializer
+    permission_classes = [IsAdminUser] # Secretaria or Admin
+
+    @action(detail=True, methods=['post'], url_path='batch-reenroll')
+    def batch_reenroll(self, request, pk=None):
+        source_school_year = self.get_object()
+
+        # Validate request data
+        serializer = BatchReenrollSerializer(
+            data=request.data,
+            context={'source_school_year_id': source_school_year.pk}
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        target_school_year_id = serializer.validated_data['target_school_year_id']
+        try:
+            target_school_year = SchoolYear.objects.get(pk=target_school_year_id)
+        except SchoolYear.DoesNotExist:
+            # Should be caught by serializer, but good practice
+            return Response({'error': 'Target school year not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Counters for summary
+        processed_count = 0
+        reenrolled_count = 0
+        skipped_graduating = 0
+        skipped_no_next_grade = 0
+        skipped_no_class_found = 0
+        skipped_already_enrolled = 0
+        errors = []
+
+        # Fetch relevant enrollments from the source year
+        source_enrollments = Enrollment.objects.filter(
+            school_class__school_year=source_school_year,
+            status__in=[Enrollment.STATUS_ACTIVE, Enrollment.STATUS_COMPLETED]
+        ).select_related('student', 'student__user', 'school_class__grade_level')
+
+        with transaction.atomic():
+            for src_enrollment in source_enrollments:
+                processed_count += 1
+                student = src_enrollment.student
+                current_grade = src_enrollment.school_class.grade_level
+
+                # 1. Determine Next Grade Level
+                if current_grade.order_in_sequence is None: # Should not happen for well-defined grades
+                    skipped_no_next_grade +=1
+                    errors.append(f"Student {student.user.username}: Current grade '{current_grade.name}' has no order_in_sequence.")
+                    continue
+
+                try:
+                    next_grade_level = GradeLevel.objects.get(order_in_sequence=current_grade.order_in_sequence + 1)
+                except GradeLevel.DoesNotExist:
+                    skipped_graduating += 1
+                    # Optionally, update student status to GRADUATED if that's a policy
+                    # student.registration_status = Student.RegistrationStatus.GRADUATED
+                    # student.save(update_fields=['registration_status'])
+                    errors.append(f"Student {student.user.username}: Graduating or no next grade level found after '{current_grade.name}'.")
+                    continue
+
+                # 2. Check if student is already enrolled in the target year (any active enrollment)
+                if Enrollment.objects.filter(
+                    student=student,
+                    school_class__school_year=target_school_year,
+                    status=Enrollment.STATUS_ACTIVE).exists():
+                    skipped_already_enrolled +=1
+                    errors.append(f"Student {student.user.username}: Already actively enrolled in target year {target_school_year.year}.")
+                    continue
+
+                # 3. Find or Create SchoolClass in Target Year for Next Grade
+                # For V1, we'll try to find one. If multiple, pick first. If none, skip.
+                target_school_class = SchoolClass.objects.filter(
+                    school_year=target_school_year,
+                    grade_level=next_grade_level
+                ).order_by('name').first() # Simplistic: pick the first one
+
+                if not target_school_class:
+                    skipped_no_class_found += 1
+                    # Log or handle class creation if policy allows, e.g.:
+                    # target_school_class = SchoolClass.objects.create(
+                    #     name=f"Default {next_grade_level.name}",
+                    #     school_year=target_school_year,
+                    #     grade_level=next_grade_level
+                    # )
+                    # logger.info(f"Created class {target_school_class.name} for {target_school_year.year}")
+                    errors.append(f"Student {student.user.username}: No class found for grade '{next_grade_level.name}' in target year {target_school_year.year}.")
+                    continue
+
+                # 4. Create New Enrollment
+                try:
+                    Enrollment.objects.create(
+                        student=student,
+                        school_class=target_school_class,
+                        status=Enrollment.STATUS_ACTIVE
+                        # enrollment_date will be auto_now_add
+                    )
+                    reenrolled_count += 1
+                except Exception as e: # Catch potential unique_together or other db errors
+                    errors.append(f"Student {student.user.username}: Error creating new enrollment - {str(e)}.")
+                    continue
+
+                # 5. (Optional) Update old enrollment status
+                if src_enrollment.status == Enrollment.STATUS_ACTIVE:
+                    src_enrollment.status = Enrollment.STATUS_COMPLETED
+                    src_enrollment.save(update_fields=['status'])
+
+        summary = {
+            'processed_enrollments': processed_count,
+            'successfully_reenrolled': reenrolled_count,
+            'skipped_graduating_or_no_next_grade': skipped_graduating + skipped_no_next_grade,
+            'skipped_no_class_found_in_target_year': skipped_no_class_found,
+            'skipped_already_enrolled_in_target_year': skipped_already_enrolled,
+            'detailed_errors_or_info': errors if errors else "No specific errors."
+        }
+        return Response(summary, status=status.HTTP_200_OK)
+
+
+from .serializers import AnnouncementSerializer # Import AnnouncementSerializer
+from django_filters import rest_framework as filters # For filtering
+
+# Custom filter for JSONField array containment (if needed)
+# class CharArrayFilterInFilter(filters.BaseInFilter, filters.CharFilter):
+#     pass
+
+class AnnouncementFilter(filters.FilterSet):
+    # publication_date_after = filters.DateTimeFilter(field_name="publication_date", lookup_expr='gte')
+    # publication_date_before = filters.DateTimeFilter(field_name="publication_date", lookup_expr='lte')
+    # Example for target_user_types if it were a simple CharField or text search:
+    # target_user_types_contain = filters.CharFilter(field_name='target_user_types', lookup_expr='icontains')
+
+    # For JSONField, direct __contains or __icontains might not work as expected for array elements.
+    # A custom filter method might be needed if complex JSON queries are required.
+    # For simple equality or if the DB supports it:
+    # target_user_types = filters.CharFilter(field_name='target_user_types', lookup_expr='contains') # Adjust based on DB & needs
+
+    class Meta:
+        model = Announcement
+        fields = {
+            'author': ['exact'],
+            'is_school_wide': ['exact'],
+            'target_grade_levels': ['exact'], # Filters if announcement is targeted to specific grade(s)
+            'target_school_classes': ['exact'], # Filters if announcement is targeted to specific class(es)
+            'publication_date': ['date__gte', 'date__lte'], # Date part gte/lte
+            'expiry_date': ['date__gte', 'date__lte', 'isnull'],
+            # 'target_user_types': ['contains'] # if your DB supports JSONField contains for lists
+        }
+
+class AnnouncementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Announcements.
+    """
+    queryset = Announcement.objects.all().select_related('author').prefetch_related(
+        'target_grade_levels', 'target_school_classes'
+    ).order_by('-publication_date')
+    serializer_class = AnnouncementSerializer
+    permission_classes = [IsAdminUser] # Adjust as needed (e.g. Secretaria, Teacher for specific actions)
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = AnnouncementFilter
+    # For more complex JSONField filtering on target_user_types,
+    # you might need to override get_queryset or use a custom filter class.
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    # Optional: Add custom logic for updates or deletions if needed
+    # def perform_update(self, serializer):
+    #     super().perform_update(serializer)
+
+    # def perform_destroy(self, instance):
+    #     super().perform_destroy(instance)
+
+    # Example: Custom action to publish/unpublish or similar
+    # @action(detail=True, methods=['post'])
+    # def set_published_status(self, request, pk=None):
+    #     announcement = self.get_object()
+    #     # ... logic to change a status field if you add one ...
+    #     return Response({'status': 'status changed'})
+
+
+from rest_framework.views import APIView
+from django.db.models import Count
+from apps.students.models import Student # Import Student model
+from apps.academics.models import GradeLevel # GradeLevel from academics is used for M2M in Announcement, but student grade is from students.models
+
+class DashboardSummaryView(APIView):
+    """
+    Provides a summary of key indicators for an administrative dashboard.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        # Total active students
+        total_active_students = Student.objects.filter(registration_status=Student.STATUS_ACTIVE).count()
+
+        # Active students by grade level (based on active enrollments)
+        # This counts distinct students per grade level if a student has multiple active enrollments in different classes of the same grade.
+        # If a student can only be in one grade level at a time via active enrollments, this is fine.
+        active_students_by_grade_level_query = Enrollment.objects.filter(
+            status=Enrollment.STATUS_ACTIVE
+        ).values(
+            'school_class__grade_level__name' # Use name from related GradeLevel (from students.models via SchoolClass)
+        ).annotate(
+            count=Count('student_id', distinct=True) # Count distinct students
+        ).order_by('school_class__grade_level__order_in_sequence')
+
+        active_students_by_grade_level_data = [
+            {'grade_level_name': item['school_class__grade_level__name'], 'count': item['count']}
+            for item in active_students_by_grade_level_query if item['school_class__grade_level__name'] is not None
+        ]
+
+        # Other student counts by registration status
+        total_preregistered_students = Student.objects.filter(registration_status=Student.STATUS_PRE_REGISTERED).count()
+        total_pending_validation_students = Student.objects.filter(registration_status=Student.STATUS_PENDING_VALIDATION).count()
+
+        # Total active enrollments
+        total_active_enrollments = Enrollment.objects.filter(status=Enrollment.STATUS_ACTIVE).count()
+
+        # Active school years
+        active_school_years_count = SchoolYear.objects.filter(is_active=True).count()
+
+        data = {
+            'total_active_students': total_active_students,
+            'active_students_by_grade_level': active_students_by_grade_level_data,
+            'total_preregistered_students': total_preregistered_students,
+            'total_pending_validation_students': total_pending_validation_students,
+            'total_active_enrollments': total_active_enrollments,
+            'active_school_years': active_school_years_count,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+
+from rest_framework_csv.renderers import CSVRenderer
+from rest_framework import generics
+# from django.utils import timezone # Already imported if needed for filename
+from .serializers import EnrollmentReportSerializer
+
+class EnrollmentListCSVExportView(generics.ListAPIView):
+    """
+    API View to export a list of enrollments to a CSV file.
+    Supports filtering by school_year_id, grade_level_id, school_class_id, status, and student_id.
+    """
+    renderer_classes = (CSVRenderer,)
+    serializer_class = EnrollmentReportSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        queryset = Enrollment.objects.select_related(
+            'student__user',
+            'school_class__grade_level',
+            'school_class__school_year'
+        ).all()
+
+        # Filtering
+        school_year_id = self.request.query_params.get('school_year_id')
+        if school_year_id:
+            queryset = queryset.filter(school_class__school_year_id=school_year_id)
+
+        grade_level_id = self.request.query_params.get('grade_level_id')
+        if grade_level_id:
+            queryset = queryset.filter(school_class__grade_level_id=grade_level_id)
+
+        school_class_id = self.request.query_params.get('school_class_id')
+        if school_class_id:
+            queryset = queryset.filter(school_class_id=school_class_id)
+
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+
+        student_id = self.request.query_params.get('student_id')
+        if student_id:
+            queryset = queryset.filter(student_id=student_id)
+
+        return queryset.order_by('school_class__school_year__year', 'school_class__grade_level__order_in_sequence', 'school_class__name', 'student__user__last_name', 'student__user__first_name')
+
+    def get_filename(self, request=None, format=None):
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        return f'enrollment_list_report_{timestamp}.csv'
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response['Content-Disposition'] = f'attachment; filename="{self.get_filename()}"'
+        return response

@@ -133,3 +133,79 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         user = User.objects.create_user(**validated_data)
         return user
+
+
+class UserEmailSerializer(serializers.ModelSerializer):
+    """
+    Serializer for User model for email management.
+    """
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'user_type')
+        read_only_fields = ('id', 'username', 'first_name', 'last_name', 'user_type')
+
+    def update(self, instance, validated_data):
+        instance.email = validated_data.get('email', instance.email)
+        instance.save(update_fields=['email'])
+        return instance
+
+
+class UserManagementSerializer(serializers.ModelSerializer):
+    """
+    Serializer for User model for management by Direção/Admin.
+    Handles creation, update (specific fields), and detailed display.
+    """
+    # For display purposes, include user_type_display
+    user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'user_type', 'user_type_display',
+            'is_active', 'is_staff', 'is_superuser',
+            'date_joined', 'last_login',
+            'password' # Included for creation, write-only
+        )
+        read_only_fields = ('id', 'date_joined', 'last_login', 'user_type_display', 'username') # username is read-only after creation
+        extra_kwargs = {
+            'password': {'write_only': True, 'style': {'input_type': 'password'}, 'required': False},
+            # Fields like username, email, user_type are required by model (blank=False)
+            # and will be enforced by DRF on POST. No need for 'required: True' here,
+            # which would make them always required even for PATCH.
+        }
+
+    def create(self, validated_data):
+        # Ensure password is provided for creation
+        password = validated_data.pop('password', None)
+        if password is None:
+            raise serializers.ValidationError({"password": "Password is required for new users."})
+
+        user = User(**validated_data)
+        user.set_password(password) # Hash password
+        user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        # Password updates are not handled by this serializer for existing users
+        if 'password' in validated_data:
+            # Do not allow password changes through this general update endpoint
+            # Consider logging this attempt or simply ignoring it.
+            # For this implementation, we'll pop it to prevent accidental changes.
+            validated_data.pop('password', None)
+            # If you wanted to allow it, you would do:
+            # password = validated_data.pop('password')
+            # instance.set_password(password)
+            # But the requirement is to not handle it here.
+
+        # Update other allowed fields
+        instance.email = validated_data.get('email', instance.email)
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.user_type = validated_data.get('user_type', instance.user_type)
+        instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.is_staff = validated_data.get('is_staff', instance.is_staff)
+        instance.is_superuser = validated_data.get('is_superuser', instance.is_superuser)
+
+        instance.save()
+        return instance

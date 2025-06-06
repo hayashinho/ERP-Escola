@@ -9,10 +9,13 @@ from .views import (
     TeacherGradeViewSet,
     TeacherAttendanceViewSet,
     TeacherSchoolEventViewSet,
-    TeacherDidacticMaterialViewSet # TeacherDidacticMaterialViewSet importado
+    TeacherDidacticMaterialViewSet, # TeacherDidacticMaterialViewSet importado
+    EnrollmentViewSet, # Importar EnrollmentViewSet
+    SchoolYearViewSet, # Importar SchoolYearViewSet
+    AnnouncementViewSet # Importar AnnouncementViewSet
 )
 # Adicionar aqui outros ViewSets do app 'academics' se necessário no futuro
-# Ex: from .views import SchoolYearViewSet, SubjectViewSet, SchoolClassViewSet
+# Ex: from .views import SubjectViewSet, SchoolClassViewSet
 
 app_name = 'academics'  # Define o namespace do app
 
@@ -37,10 +40,18 @@ router.register(r'teacher/materials', TeacherDidacticMaterialViewSet, basename='
 # router.register(r'school-years', SchoolYearViewSet, basename='schoolyear')
 # router.register(r'subjects', SubjectViewSet, basename='subject')
 # router.register(r'school-classes', SchoolClassViewSet, basename='schoolclass')
+router.register(r'enrollments', EnrollmentViewSet, basename='enrollment')
+router.register(r'school-years', SchoolYearViewSet, basename='schoolyear')
+router.register(r'announcements', AnnouncementViewSet, basename='announcement')
 
+
+from .views import DashboardSummaryView # Import the new view
 
 # As urlpatterns do app são definidas pelas URLs geradas pelo router.
 urlpatterns = [
     path('', include(router.urls)),
+    path('dashboard/summary/', DashboardSummaryView.as_view(), name='dashboard-summary'),
+    path('reports/enrollment-list/csv/', EnrollmentListCSVExportView.as_view(), name='enrollment_list_csv_export'),
     # Adicionar outras URLs específicas do app aqui, se não forem baseadas em ViewSets.
 ]
+from .views import EnrollmentListCSVExportView # Import the new view at the end to avoid breaking existing structure if it's sensitive

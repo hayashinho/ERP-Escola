@@ -207,3 +207,139 @@ class PendingRegistrationViewSet(viewsets.ReadOnlyModelViewSet):
         student.rejection_reason = rejection_reason # Salva o motivo no novo campo
         student.save()
         return Response({'status': 'success', 'message': f'Matrícula do aluno {student} rejeitada.'})
+
+
+class StudentManagementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Secretaria to manage student lifecycle and data.
+    Allows listing, retrieving, and updating (PATCH) student records.
+    """
+    queryset = Student.objects.all().select_related(
+        'user', 'user__profile', 'grade_level_pretended'
+    ).prefetch_related(
+        'documents',
+        'parent_associations',
+        'parent_associations__parent_user',
+        'parent_associations__parent_user__profile'
+    ).order_by('user__username')
+    serializer_class = StudentSerializer
+    permission_classes = [IsAdminUser] # Or a more specific 'Secretaria' permission
+    http_method_names = ['get', 'patch', 'head', 'options'] # Allow only these methods
+
+    # Add filtering for registration_status
+    filterset_fields = ['registration_status', 'grade_level_pretended']
+
+    # The StudentSerializer's update method already handles the logic for
+    # updating registration_status and rejection_reason (conditionally).
+    # It also ensures other fields are read-only as defined.
+
+
+from rest_framework_csv.renderers import CSVRenderer
+from rest_framework import generics
+from rest_framework.permissions import IsAdminUser # Import IsAdminUser
+from django.db.models import Subquery, OuterRef, F, CharField, IntegerField
+from apps.academics.models import Enrollment, SchoolClass, SchoolYear # Import academics models
+from .models import Student # Import Student model
+from .serializers import StudentReportSerializer # Import the new report serializer
+from django.utils import timezone
+
+class StudentListCSVExportView(generics.ListAPIView):
+    """
+    API View to export a list of students to a CSV file.
+    Supports filtering by grade_level_id, registration_status, and school_year_id (for active enrollment).
+    """
+    renderer_classes = (CSVRenderer,)
+    serializer_class = StudentReportSerializer
+    permission_classes = [IsAdminUser] # Or your specific permission
+
+    def get_queryset(self):
+        queryset = Student.objects.select_related('user__profile').all()
+
+        # Parameters for filtering active enrollment context
+        school_year_id = self.request.query_params.get('school_year_id')
+
+        # Annotate with latest active enrollment data for a specific school year if provided
+        # This is a simplified approach: assumes one active enrollment per student per year.
+        # A more robust solution might be needed for complex cases (e.g. multiple active enrollments).
+        active_enrollment_qs = Enrollment.objects.filter(
+            student=OuterRef('pk'),
+            status=Enrollment.STATUS_ACTIVE
+        ).order_by('-enrollment_date') # Get the latest if multiple (though ideally should be one)
+
+        if school_year_id:
+            try:
+                # Ensure school_year_id is valid before using in subquery
+                SchoolYear.objects.get(pk=school_year_id)
+                active_enrollment_qs = active_enrollment_qs.filter(school_class__school_year_id=school_year_id)
+            except (ValueError, SchoolYear.DoesNotExist):
+                # Handle invalid school_year_id, perhaps by returning no enrollments or raising error
+                # For now, the subquery will just not match if school_year_id is invalid.
+                pass # Or active_enrollment_qs = Enrollment.objects.none() to be safe
+
+        queryset = queryset.annotate(
+            annotated_grade_level_name=Subquery(
+                active_enrollment_qs.values('school_class__grade_level__name')[:1],
+                output_field=CharField(null=True)
+            ),
+            annotated_school_year=Subquery(
+                active_enrollment_qs.values('school_class__school_year__year')[:1],
+                output_field=IntegerField(null=True)
+            )
+        )
+        # The serializer fields `current_grade_level_name` and `active_enrollment_school_year`
+        # will map to these annotated fields. We need to ensure the source names match.
+        # Let's rename them in the queryset to match serializer expectations directly.
+        queryset = queryset.annotate(
+            current_grade_level_name=F('annotated_grade_level_name'),
+            active_enrollment_school_year=F('annotated_school_year')
+        )
+
+        # Filtering
+        grade_level_id = self.request.query_params.get('grade_level_id')
+        if grade_level_id:
+            # This filters based on the annotated grade_level_name from the active enrollment.
+            # To filter by PK, we'd need to filter on the subquery's school_class__grade_level_id.
+            # For simplicity with the current annotation, this filters if name matches.
+            # A more direct filter on ID:
+            queryset = queryset.filter(enrollments__school_class__grade_level_id=grade_level_id, enrollments__status=Enrollment.STATUS_ACTIVE)
+            if school_year_id: # Ensure this enrollment is in the specified school year
+                 queryset = queryset.filter(enrollments__school_class__school_year_id=school_year_id)
+
+
+        registration_status = self.request.query_params.get('registration_status')
+        if registration_status:
+            queryset = queryset.filter(registration_status=registration_status)
+
+        # Ensure distinct students if filters cause duplicates due to joins
+        return queryset.distinct()
+
+    def get_filename(self, request=None, format=None):
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        return f'student_list_report_{timestamp}.csv'
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        # Set filename for download
+        response['Content-Disposition'] = f'attachment; filename="{self.get_filename()}"'
+        return response
+
+
+from .serializers import StudentDocumentSerializer # Import StudentDocumentSerializer
+
+class StudentDocumentManagementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Secretaria to manage student documents, specifically for validation.
+    Allows listing, retrieving, and updating (PATCH) document status and notes.
+    """
+    queryset = StudentDocument.objects.all().select_related(
+        'student', 'student__user'
+    ).order_by('student__user__username', 'document_type')
+    serializer_class = StudentDocumentSerializer
+    permission_classes = [IsAdminUser] # Or a more specific 'Secretaria' permission
+    http_method_names = ['get', 'patch', 'head', 'options'] # Allow only these methods
+
+    # Add filtering for validation_status and document_type
+    filterset_fields = ['validation_status', 'document_type', 'student']
+
+    # The StudentDocumentSerializer's update method handles the logic for
+    # updating validation_status and notes, and ensures other fields are read-only.
