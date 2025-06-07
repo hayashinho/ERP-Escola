@@ -68,10 +68,10 @@ INSTALLED_APPS = [
     # 'ratelimit',                                # Para rate limiting (REVERTIDO PARA COMENTADO)
 
     # Meus apps
-    'accounts.apps.AccountsConfig', # This one is correct as 'accounts' is directly under 'apps/'
-    'students.apps.StudentsConfig',   # Corrected: remove leading 'apps.'
-    'academics.apps.AcademicsConfig', # Corrected: remove leading 'apps.'
-    'financials.apps.FinancialsConfig', # Corrected: remove leading 'apps.'
+    'accounts.apps.AccountsConfig', # Specific state: no 'apps.' prefix here
+    'students.apps.StudentsConfig',   # Specific state: no 'apps.' prefix here
+    'academics.apps.AcademicsConfig', # Specific state: no 'apps.' prefix here
+    'financials.apps.FinancialsConfig', # Specific state: no 'apps.' prefix here
 ]
 
 # Configuração do Modelo de Usuário Customizado

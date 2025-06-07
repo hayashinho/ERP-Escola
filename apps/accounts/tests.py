@@ -6,10 +6,10 @@ from apps.accounts.models import User
 class UserEmailManagementViewSetTests(APITestCase):
     def setUp(self):
         # Create users for testing
-        self.admin_user = User.objects.create_user(username='admin', email='admin@example.com', password='password123', user_type=User.UserType.ADMIN, is_staff=True)
-        self.student_user = User.objects.create_user(username='student', email='student@example.com', password='password123', user_type=User.UserType.STUDENT)
-        self.staff_user = User.objects.create_user(username='staff', email='staff@example.com', password='password123', user_type=User.UserType.STAFF)
-        self.parent_user = User.objects.create_user(username='parent', email='parent@example.com', password='password123', user_type=User.UserType.PARENT)
+        self.admin_user = User.objects.create_user(username='admin', email='admin@example.com', password='password123', user_type=User.USER_TYPE_ADMIN, is_staff=True)
+        self.student_user = User.objects.create_user(username='student', email='student@example.com', password='password123', user_type=User.USER_TYPE_STUDENT)
+        self.staff_user = User.objects.create_user(username='staff', email='staff@example.com', password='password123', user_type=User.USER_TYPE_STAFF)
+        self.parent_user = User.objects.create_user(username='parent', email='parent@example.com', password='password123', user_type=User.USER_TYPE_PARENT)
 
 
         # URL for the viewset
@@ -95,7 +95,7 @@ class UserEmailManagementViewSetTests(APITestCase):
             'email': new_email,
             'username': 'cannotchangeusername',
             'first_name': 'CannotChangeFirstName',
-            'user_type': User.UserType.STAFF # Try to change user_type
+            'user_type': User.USER_TYPE_STAFF # Try to change user_type
         }
         response = self.client.put(self.get_detail_url(self.student_user.id), data) # PUT to send all fields
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -103,10 +103,10 @@ class UserEmailManagementViewSetTests(APITestCase):
         self.assertEqual(self.student_user.email, new_email)
         self.assertEqual(self.student_user.username, original_username) # Should not change
         self.assertEqual(self.student_user.first_name, original_first_name) # Should not change
-        self.assertEqual(self.student_user.user_type, User.UserType.STUDENT) # Should not change
+        self.assertEqual(self.student_user.user_type, User.USER_TYPE_STUDENT) # Should not change
         self.assertEqual(response.data['email'], new_email)
         self.assertEqual(response.data['username'], original_username)
-        self.assertEqual(response.data['user_type'], User.UserType.STUDENT.upper())
+        self.assertEqual(response.data['user_type'], User.USER_TYPE_STUDENT.upper())
 
 
     # Test Permission Enforcement (already covered by individual tests, but an explicit one is good)

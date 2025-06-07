@@ -12,7 +12,9 @@ from .views import (
     TeacherDidacticMaterialViewSet, # TeacherDidacticMaterialViewSet importado
     EnrollmentViewSet, # Importar EnrollmentViewSet
     SchoolYearViewSet, # Importar SchoolYearViewSet
-    AnnouncementViewSet # Importar AnnouncementViewSet
+    AnnouncementViewSet, # Importar AnnouncementViewSet
+    EnrollmentListCSVExportView, # Moved import to top
+    DashboardSummaryView # Moved import to top
 )
 # Adicionar aqui outros ViewSets do app 'academics' se necessário no futuro
 # Ex: from .views import SubjectViewSet, SchoolClassViewSet
@@ -54,4 +56,3 @@ urlpatterns = [
     path('reports/enrollment-list/csv/', EnrollmentListCSVExportView.as_view(), name='enrollment_list_csv_export'),
     # Adicionar outras URLs específicas do app aqui, se não forem baseadas em ViewSets.
 ]
-from .views import EnrollmentListCSVExportView # Import the new view at the end to avoid breaking existing structure if it's sensitive

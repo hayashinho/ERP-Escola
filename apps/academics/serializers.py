@@ -4,9 +4,10 @@ from apps.academics.models import (
     GradingPeriod, Grade, Attendance, SchoolEvent, DidacticMaterial,
     TeacherAssignment, Announcement # Import Announcement model
 )
-from apps.students.models import GradeLevel, Student # Import Student
-from apps.students.serializers import GradeLevelSerializer, StudentSimpleSerializer
-from apps.accounts.serializers import UserSerializer
+from apps.students.models import GradeLevel, Student # Reverted import
+from apps.students.serializers import GradeLevelSerializer, StudentSimpleSerializer # Reverted import
+from apps.accounts.serializers import UserSerializer # Reverted import
+from apps.accounts.models import User # Import User model for choices
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone # Import timezone
@@ -88,7 +89,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         """
         Validate that the student's registration_status is ACTIVE.
         """
-        if student_instance.registration_status != Student.RegistrationStatus.ACTIVE:
+        if student_instance.registration_status != Student.STATUS_ACTIVE: # Corrected
             raise serializers.ValidationError(
                 _("Student's registration status must be ACTIVE to create an enrollment. Current status: %(status)s.") %
                 {'status': student_instance.get_registration_status_display()}
@@ -195,32 +196,78 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        is_school_wide = data.get('is_school_wide', False)
-        target_user_types = data.get('target_user_types')
-        target_grade_levels = data.get('target_grade_levels')
-        target_school_classes = data.get('target_school_classes')
+        # On updates (PATCH), some fields might not be present in `data`.
+        # We need to consider the existing instance's values for these fields.
+        is_creating = self.instance is None
 
-        if not is_school_wide and not target_user_types and not target_grade_levels and not target_school_classes:
+        is_school_wide = data.get('is_school_wide', self.instance.is_school_wide if not is_creating else False)
+
+        # Get current values or values from instance if not in data (for updates)
+        target_user_types = data.get('target_user_types', self.instance.target_user_types if not is_creating else None)
+        target_grade_levels = data.get('target_grade_levels', list(self.instance.target_grade_levels.all()) if not is_creating and hasattr(self.instance, 'target_grade_levels') else None)
+        target_school_classes = data.get('target_school_classes', list(self.instance.target_school_classes.all()) if not is_creating and hasattr(self.instance, 'target_school_classes') else None)
+
+        # Ensure lists are checked for content, not just existence of the key
+        has_target_user_types = bool(target_user_types) # True if list is not empty
+        has_target_grade_levels = bool(target_grade_levels)
+        has_target_school_classes = bool(target_school_classes)
+
+        if not is_school_wide and not has_target_user_types and not has_target_grade_levels and not has_target_school_classes:
             raise serializers.ValidationError(
                 _("If the announcement is not school-wide, at least one targeting option (user types, grade levels, or school classes) must be specified.")
             )
 
-        if data.get('expiry_date') and data['expiry_date'] < timezone.now():
+        expiry_date = data.get('expiry_date', self.instance.expiry_date if not is_creating else None)
+        if expiry_date and expiry_date < timezone.now(): # Ensure timezone.now() for datetime
              raise serializers.ValidationError(_("Expiry date cannot be in the past."))
+
+        # If is_school_wide is set to True, ideally clear other targeting fields.
+        # This can be done here or in create/update methods.
+        # For now, we won't enforce clearing them, but it's a policy consideration.
+        # if is_school_wide:
+        #     data['target_user_types'] = None # or []
+        #     data['target_grade_levels'] = []
+        #     data['target_school_classes'] = []
 
         return data
 
     def create(self, validated_data):
-        # Status defaults to ACTIVE via model's field definition.
-        # No need to explicitly set it here unless overriding.
-        enrollment = Enrollment.objects.create(**validated_data)
-        return enrollment
+        target_grade_levels_data = validated_data.pop('target_grade_levels', []) # Default to empty list if not provided
+        target_school_classes_data = validated_data.pop('target_school_classes', []) # Default to empty list if not provided
+
+        # Author is set in the view via perform_create, so it should be in validated_data
+        # if not passed explicitly when perform_create calls serializer.save()
+        # However, if author is part of validated_data (e.g. if serializer is used directly),
+        # it will be handled by Announcement.objects.create()
+
+        announcement = Announcement.objects.create(**validated_data)
+
+        if target_grade_levels_data is not None:
+            announcement.target_grade_levels.set(target_grade_levels_data)
+        if target_school_classes_data is not None:
+            announcement.target_school_classes.set(target_school_classes_data)
+
+        return announcement
 
     def update(self, instance, validated_data):
-        # Only allow 'status' to be updated via this serializer for PATCH.
-        # Student and SchoolClass changes are blocked by the validate method.
-        instance.status = validated_data.get('status', instance.status)
-        instance.save(update_fields=['status'])
+        target_grade_levels_data = validated_data.pop('target_grade_levels', None)
+        target_school_classes_data = validated_data.pop('target_school_classes', None)
+
+        # Update standard fields
+        instance.title = validated_data.get('title', instance.title)
+        instance.content = validated_data.get('content', instance.content)
+        instance.target_user_types = validated_data.get('target_user_types', instance.target_user_types)
+        instance.is_school_wide = validated_data.get('is_school_wide', instance.is_school_wide)
+        instance.expiry_date = validated_data.get('expiry_date', instance.expiry_date)
+        # Author and publication_date are read-only and should not be updated here
+
+        instance.save()
+
+        if target_grade_levels_data is not None:
+            instance.target_grade_levels.set(target_grade_levels_data)
+        if target_school_classes_data is not None:
+            instance.target_school_classes.set(target_school_classes_data)
+
         return instance
 
 

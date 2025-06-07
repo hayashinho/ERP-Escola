@@ -4,8 +4,8 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone # Para default em grading_date e outros
 
-from apps.students.models import GradeLevel, Student # Importar GradeLevel e Student do app students
-from apps.accounts.models import User # Import User model for limit_choices_to
+from apps.students.models import GradeLevel, Student # Reverted import path
+from apps.accounts.models import User # Reverted import path
 
 class SchoolYear(models.Model):
     """
@@ -549,6 +549,7 @@ class Announcement(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True, # Allow blank for validation, as it's set by perform_create
         related_name='authored_announcements',
         verbose_name=_('author'),
         limit_choices_to={'user_type__in': [User.USER_TYPE_STAFF, User.USER_TYPE_ADMIN, User.USER_TYPE_TEACHER]}
@@ -600,7 +601,7 @@ class Announcement(models.Model):
         # or should ideally be empty. This depends on desired strictness.
         # For now, we allow them to be set, but UI/UX should guide user.
         if self.target_user_types:
-            from apps.accounts.models import User # Local import to avoid circularity if User model imports from academics
+            from apps.accounts.models import User # Reverted Local import path
             valid_user_types = [choice[0] for choice in User.USER_TYPE_CHOICES]
             for user_type in self.target_user_types:
                 if user_type not in valid_user_types:

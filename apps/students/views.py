@@ -7,8 +7,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser # Adicionado IsAdmi
 from rest_framework.decorators import action # Adicionado action
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from apps.accounts.serializers import UserRegistrationSerializer
-from apps.accounts.models import UserProfile, User
+from apps.accounts.serializers import UserRegistrationSerializer # Reverted import
+from apps.accounts.models import UserProfile, User # Reverted import
 from apps.students.models import Student, GradeLevel, StudentParentAssociation, StudentDocument
 from apps.students.serializers import StudentSerializer # Importar StudentSerializer
 
@@ -238,7 +238,7 @@ from rest_framework_csv.renderers import CSVRenderer
 from rest_framework import generics
 from rest_framework.permissions import IsAdminUser # Import IsAdminUser
 from django.db.models import Subquery, OuterRef, F, CharField, IntegerField
-from apps.academics.models import Enrollment, SchoolClass, SchoolYear # Import academics models
+from apps.academics.models import Enrollment, SchoolClass, SchoolYear # Reverted import
 from .models import Student # Import Student model
 from .serializers import StudentReportSerializer # Import the new report serializer
 from django.utils import timezone

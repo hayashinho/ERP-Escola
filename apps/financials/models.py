@@ -2,8 +2,8 @@ from django.db import models
 from django.conf import settings # Adicionado para settings.AUTH_USER_MODEL
 from django.utils import timezone # Adicionado para default de datas
 from django.utils.translation import gettext_lazy as _
-from apps.students.models import Student
-from apps.academics.models import SchoolYear
+from apps.students.models import Student # Reverted import
+from apps.academics.models import SchoolYear # Reverted import
 
 class Fee(models.Model):
     """

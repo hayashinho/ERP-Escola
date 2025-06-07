@@ -8,12 +8,12 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser # Importar parsers para upload
 
-from apps.accounts.models import User
-from apps.accounts.permissions import IsTeacher
-from apps.students.models import Student, StudentParentAssociation
+from apps.accounts.models import User # Reverted import
+from apps.accounts.permissions import IsTeacher # Reverted import
+from apps.students.models import Student, StudentParentAssociation # Reverted import
 from apps.academics.models import (
     Grade, Attendance, SchoolEvent, Enrollment, DidacticMaterial, TeacherAssignment,
-    GradingPeriod, Subject, SchoolClass, SchoolYear
+    GradingPeriod, Subject, SchoolClass, SchoolYear, Announcement # Added Announcement
 )
 from apps.academics.serializers import (
     GradeSerializer, AttendanceSerializer, SchoolEventSerializer, DidacticMaterialSerializer,
@@ -429,7 +429,7 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
 
 
 from django.db import transaction
-from apps.students.models import GradeLevel # Ensure GradeLevel from students.models is imported
+from apps.students.models import GradeLevel # Reverted import: Ensure GradeLevel from students.models is imported
 from .serializers import SchoolYearSerializer, BatchReenrollSerializer # Import necessary serializers
 
 class SchoolYearViewSet(viewsets.ModelViewSet):
@@ -481,6 +481,12 @@ class SchoolYearViewSet(viewsets.ModelViewSet):
                 student = src_enrollment.student
                 current_grade = src_enrollment.school_class.grade_level
 
+                # Update old enrollment status first, if it was active
+                original_src_enrollment_status = src_enrollment.status
+                if original_src_enrollment_status == Enrollment.STATUS_ACTIVE:
+                    src_enrollment.status = Enrollment.STATUS_COMPLETED
+                    src_enrollment.save(update_fields=['status'])
+
                 # 1. Determine Next Grade Level
                 if current_grade.order_in_sequence is None: # Should not happen for well-defined grades
                     skipped_no_next_grade +=1
@@ -492,7 +498,7 @@ class SchoolYearViewSet(viewsets.ModelViewSet):
                 except GradeLevel.DoesNotExist:
                     skipped_graduating += 1
                     # Optionally, update student status to GRADUATED if that's a policy
-                    # student.registration_status = Student.RegistrationStatus.GRADUATED
+                    # student.registration_status = Student.STATUS_GRADUATED
                     # student.save(update_fields=['registration_status'])
                     errors.append(f"Student {student.user.username}: Graduating or no next grade level found after '{current_grade.name}'.")
                     continue
@@ -538,10 +544,7 @@ class SchoolYearViewSet(viewsets.ModelViewSet):
                     errors.append(f"Student {student.user.username}: Error creating new enrollment - {str(e)}.")
                     continue
 
-                # 5. (Optional) Update old enrollment status
-                if src_enrollment.status == Enrollment.STATUS_ACTIVE:
-                    src_enrollment.status = Enrollment.STATUS_COMPLETED
-                    src_enrollment.save(update_fields=['status'])
+                # Old enrollment status already updated at the beginning of the loop if it was active.
 
         summary = {
             'processed_enrollments': processed_count,
@@ -618,7 +621,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
 
 from rest_framework.views import APIView
 from django.db.models import Count
-from apps.students.models import Student # Import Student model
+from apps.students.models import Student # Reverted import: Import Student model
 from apps.academics.models import GradeLevel # GradeLevel from academics is used for M2M in Announcement, but student grade is from students.models
 
 class DashboardSummaryView(APIView):

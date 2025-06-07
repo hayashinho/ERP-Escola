@@ -167,7 +167,7 @@ class UserManagementSerializer(serializers.ModelSerializer):
             'date_joined', 'last_login',
             'password' # Included for creation, write-only
         )
-        read_only_fields = ('id', 'date_joined', 'last_login', 'user_type_display', 'username') # username is read-only after creation
+        read_only_fields = ('id', 'date_joined', 'last_login', 'user_type_display') # username removed from here
         extra_kwargs = {
             'password': {'write_only': True, 'style': {'input_type': 'password'}, 'required': False},
             # Fields like username, email, user_type are required by model (blank=False)
@@ -187,6 +187,10 @@ class UserManagementSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
+        # Username should not be updatable. If provided, ignore it or raise error.
+        # For now, we simply don't assign it. The field is not in read_only_fields for create to work.
+        validated_data.pop('username', None)
+
         # Password updates are not handled by this serializer for existing users
         if 'password' in validated_data:
             # Do not allow password changes through this general update endpoint

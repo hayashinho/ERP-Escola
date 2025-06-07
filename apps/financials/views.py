@@ -8,8 +8,8 @@ from rest_framework.decorators import action # Importar action
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet, DateFromToRangeFilter
 from django_filters import CharFilter
 
-from apps.accounts.models import User
-from apps.students.models import Student, StudentParentAssociation
+from apps.accounts.models import User # Reverted import
+from apps.students.models import Student, StudentParentAssociation # Reverted import
 from .models import Fee, Payment, FeeEditLog
 from .serializers import FeeSerializer, PaymentSerializer, FeeWriteSerializer, PaymentWriteSerializer
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.students.models import GradeLevel, Student, StudentParentAssociation, StudentDocument
-from apps.accounts.serializers import UserSerializer # Importar UserSerializer
+from apps.accounts.serializers import UserSerializer # Reverted import
 
 class GradeLevelSerializer(serializers.ModelSerializer):
     """
@@ -49,7 +49,7 @@ class StudentDocumentSerializer(serializers.ModelSerializer):
         # Ensure that if status is not REJECTED, notes might be cleared or handled as per business logic
         # For now, we allow notes to be updated regardless of status,
         # but specific logic can be added e.g., if status is APPROVED, clear notes.
-        if instance.validation_status == StudentDocument.ValidationStatus.APPROVED:
+        if instance.validation_status == StudentDocument.STATUS_APPROVED: # Corrected
             # Example: Clear notes if document is approved, or set a default note.
             # instance.notes = "Document approved."
             pass # Keep notes as provided by user for now
@@ -120,7 +120,7 @@ class StudentSerializer(serializers.ModelSerializer):
         instance.registration_status = validated_data.get('registration_status', instance.registration_status)
 
         # Only allow rejection_reason if status is REJECTED
-        if instance.registration_status == Student.RegistrationStatus.REJECTED:
+        if instance.registration_status == Student.STATUS_REJECTED: # Corrected
             instance.rejection_reason = validated_data.get('rejection_reason', instance.rejection_reason)
         else:
             # If status is not REJECTED, clear any existing rejection_reason

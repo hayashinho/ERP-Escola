@@ -22,6 +22,7 @@ class GradeLevel(models.Model):
         verbose_name = _('Grade Level')
         verbose_name_plural = _('Grade Levels')
         ordering = ['order_in_sequence']
+        app_label = 'students'
 
     def __str__(self):
         return self.name
