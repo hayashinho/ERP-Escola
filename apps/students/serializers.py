@@ -1,20 +1,42 @@
 from rest_framework import serializers
+from django.utils.translation import gettext_lazy as _ # Added import
 from apps.students.models import GradeLevel, Student, StudentParentAssociation, StudentDocument
 from apps.accounts.serializers import UserSerializer # Reverted import
 
 class GradeLevelSerializer(serializers.ModelSerializer):
     """
-    Serializer para o modelo GradeLevel.
+    Serializer for the GradeLevel model.
+    Represents a specific grade level in the school (e.g., 1st Grade, 10th Grade).
     """
+    name = serializers.CharField(help_text=_("Name of the grade level (e.g., '1st Grade', 'Jardim II')."))
+    order_in_sequence = serializers.IntegerField(help_text=_("Numeric order for sorting grade levels sequentially."))
+
     class Meta:
         model = GradeLevel
-        fields = '__all__' # Inclui 'id', 'name', 'order_in_sequence'
+        fields = ('id', 'name', 'order_in_sequence')
 
 class StudentDocumentSerializer(serializers.ModelSerializer):
     """
-    Serializer para o modelo StudentDocument.
+    Serializer for the StudentDocument model.
+    Manages documents associated with a student. Allows updating validation status and notes.
     """
-    file_url = serializers.SerializerMethodField(read_only=True)
+    student = serializers.PrimaryKeyRelatedField(read_only=True, help_text=_("The student this document belongs to."))
+    document_type = serializers.ChoiceField(choices=StudentDocument.DOCUMENT_TYPE_CHOICES, read_only=True, help_text=_("Type of the document (e.g., RG, CPF, Birth Certificate)."))
+    get_document_type_display = serializers.CharField(read_only=True, help_text=_("Display name for the document type.")) # Removed source
+    document_name = serializers.CharField(read_only=True, help_text=_("Name of the document, often derived from the filename."))
+    file = serializers.FileField(read_only=True, help_text=_("The uploaded file itself."))
+    file_url = serializers.SerializerMethodField(read_only=True, help_text=_("URL to access the document file."))
+    upload_date = serializers.DateField(read_only=True, help_text=_("Date when the document was uploaded."))
+    validation_status = serializers.ChoiceField(
+        choices=StudentDocument.VALIDATION_STATUS_CHOICES,
+        help_text=_("Current validation status of the document (e.g., Pending, Approved, Rejected). This field is updatable.")
+    )
+    get_validation_status_display = serializers.CharField(read_only=True, help_text=_("Display name for the validation status.")) # Removed source
+    is_optional = serializers.BooleanField(read_only=True, help_text=_("Indicates if this document type is optional for the student."))
+    notes = serializers.CharField(
+        required=False, allow_blank=True, style={'base_template': 'textarea.html'},
+        help_text=_("Administrative notes regarding the document or its validation. This field is updatable.")
+    )
 
     class Meta:
         model = StudentDocument
@@ -23,20 +45,16 @@ class StudentDocumentSerializer(serializers.ModelSerializer):
             'file', 'file_url', 'upload_date', 'validation_status',
             'get_validation_status_display', 'is_optional', 'notes'
         )
+        # Most fields are read-only as they are set during creation or derived.
+        # `validation_status` and `notes` are updatable via the `update` method.
         read_only_fields = (
-            'id',
-            'student',
-            'document_type',
-            'get_document_type_display',
-            'document_name', # Typically set from filename on creation
-            'file', # File itself should not be changed via this update
-            'file_url',
-            'upload_date',
-            'get_validation_status_display',
-            'is_optional', # Should be defined by document type, not changed per instance
+            'id', 'student', 'document_type', 'get_document_type_display',
+            'document_name', 'file', 'file_url', 'upload_date',
+            'get_validation_status_display', 'is_optional'
         )
 
-    def get_file_url(self, obj):
+
+    def get_file_url(self, obj: StudentDocument) -> str | None:
         request = self.context.get('request')
         if obj.file and request:
             return request.build_absolute_uri(obj.file.url)
@@ -59,36 +77,74 @@ class StudentDocumentSerializer(serializers.ModelSerializer):
 
 class StudentParentAssociationSerializer(serializers.ModelSerializer):
     """
-    Serializer para o modelo StudentParentAssociation.
+    Serializer for the StudentParentAssociation model.
+    Links a student to a parent/guardian user and specifies the relationship type.
     """
-    parent_user_details = UserSerializer(source='parent_user', read_only=True)
-    relationship_type_display = serializers.CharField(source='get_relationship_type_display', read_only=True)
+    parent_user = serializers.PrimaryKeyRelatedField(
+        queryset=StudentParentAssociation.objects.all(), # queryset is required for writable PrimaryKeyRelatedField if used for write
+        help_text=_("The user ID of the parent/guardian.")
+    )
+    parent_user_details = UserSerializer(source='parent_user', read_only=True, help_text=_("Detailed information of the parent/guardian user."))
+    relationship_type = serializers.ChoiceField(
+        choices=StudentParentAssociation.RELATIONSHIP_CHOICES,
+        help_text=_("Type of relationship (e.g., Mother, Father, Guardian).")
+    )
+    relationship_type_display = serializers.CharField(source='get_relationship_type_display', read_only=True, help_text=_("Display name for the relationship type."))
 
     class Meta:
         model = StudentParentAssociation
         fields = (
             'id',
-            'parent_user',
-            'parent_user_details',
+            'parent_user', # ID of the User model instance for the parent
+            'parent_user_details', # Nested User details
             'relationship_type',
             'relationship_type_display',
         )
+        # If this serializer were to be used for writing associations directly (e.g. nested under student),
+        # 'student' field would also be needed, or handled in the parent serializer's create/update.
 
 class StudentSerializer(serializers.ModelSerializer):
     """
-    Serializer para o modelo Student.
-    Inclui detalhes do usuário, série pretendida, documentos e associações de pais.
+    Serializer for the Student model.
+    Provides a comprehensive view of student data, including linked user details,
+    pretended grade level, documents, and parent associations.
+    Allows updating specific fields like registration status, allergies, and observations.
     """
-    user_details = UserSerializer(source='user', read_only=True)
-    grade_level_pretended_details = GradeLevelSerializer(source='grade_level_pretended', read_only=True)
-    documents = StudentDocumentSerializer(many=True, read_only=True)
-    parent_associations = StudentParentAssociationSerializer(many=True, read_only=True)
-    registration_status_display = serializers.CharField(source='get_registration_status_display', read_only=True)
+    user = serializers.PrimaryKeyRelatedField(read_only=True, help_text=_("The user ID associated with this student record. This is the student's primary key."))
+    user_details = UserSerializer(source='user', read_only=True, help_text=_("Detailed information of the user account linked to this student."))
+    grade_level_pretended = serializers.PrimaryKeyRelatedField(
+        queryset=GradeLevel.objects.all(),
+        help_text=_("ID of the grade level the student is applying for or intends to join.")
+    )
+    grade_level_pretended_details = GradeLevelSerializer(source='grade_level_pretended', read_only=True, help_text=_("Detailed information of the pretended grade level."))
+    documents = StudentDocumentSerializer(many=True, read_only=True, help_text=_("List of documents associated with the student."))
+    parent_associations = StudentParentAssociationSerializer(many=True, read_only=True, help_text=_("List of parents/guardians associated with the student."))
+
+    registration_status = serializers.ChoiceField(
+        choices=Student.REGISTRATION_STATUS_CHOICES,
+        help_text=_("Current registration status of the student (e.g., Pre-registered, Pending Validation, Approved, Rejected). Updatable.")
+    )
+    registration_status_display = serializers.CharField(source='get_registration_status_display', read_only=True, help_text=_("Display name for the registration status."))
+    enrollment_date = serializers.DateField(read_only=True, help_text=_("Date when the student was officially enrolled (after approval)."))
+    school_entry_date = serializers.DateField(read_only=True, help_text=_("Date when the student first joined the school."))
+
+    allergies = serializers.CharField(
+        required=False, allow_blank=True, style={'base_template': 'textarea.html'},
+        help_text=_("Information about student's allergies. Updatable.")
+    )
+    observations = serializers.CharField(
+        required=False, allow_blank=True, style={'base_template': 'textarea.html'},
+        help_text=_("General observations about the student. Updatable.")
+    )
+    rejection_reason = serializers.CharField(
+        required=False, allow_blank=True, style={'base_template': 'textarea.html'},
+        help_text=_("Reason for rejection if registration_status is 'Rejected'. Updatable and relevant only when status is 'Rejected'.")
+    )
 
     class Meta:
         model = Student
         fields = (
-            'user', # This is the PK and effectively the ID of the student
+            'user',
             'user_details',
             'grade_level_pretended',
             'grade_level_pretended_details',
@@ -103,39 +159,46 @@ class StudentSerializer(serializers.ModelSerializer):
             'parent_associations',
         )
         read_only_fields = (
-            'user', # Cannot change the user associated with the student record
+            # 'user' is PK, inherently read-only after creation. Explicitly stated above.
             'user_details',
-            'grade_level_pretended', # Should be set on creation or specific action
+            # 'grade_level_pretended' is updatable on create, read-only here for PATCH context (update view might handle it differently if needed)
+            # For StudentManagementViewSet, grade_level_pretended is NOT updatable.
             'grade_level_pretended_details',
-            'enrollment_date', # Typically set by system or specific action
-            'school_entry_date', # Typically set by system or specific action
+            'enrollment_date',
+            'school_entry_date',
             'documents',
             'parent_associations',
-            'registration_status_display', # This is a display field
+            'registration_status_display',
         )
 
-    def update(self, instance, validated_data):
-        # Allow updating registration_status and rejection_reason
-        # Other fields in validated_data will be handled by super().update() if they are not read_only
-        instance.registration_status = validated_data.get('registration_status', instance.registration_status)
+    def update(self, instance: Student, validated_data: dict) -> Student:
+        fields_to_update = []
 
-        # Only allow rejection_reason if status is REJECTED
-        if instance.registration_status == Student.STATUS_REJECTED: # Corrected
-            instance.rejection_reason = validated_data.get('rejection_reason', instance.rejection_reason)
-        else:
-            # If status is not REJECTED, clear any existing rejection_reason
-            instance.rejection_reason = None
+        if 'registration_status' in validated_data:
+            instance.registration_status = validated_data['registration_status']
+            fields_to_update.append('registration_status')
 
-        # For other potentially updatable fields by Secretaria (e.g. allergies, observations)
-        instance.allergies = validated_data.get('allergies', instance.allergies)
-        instance.observations = validated_data.get('observations', instance.observations)
+            # Handle rejection_reason based on the new status
+            if instance.registration_status == Student.STATUS_REJECTED: # Use constant from model
+                instance.rejection_reason = validated_data.get('rejection_reason', instance.rejection_reason)
+            else:
+                instance.rejection_reason = None # Clear if not rejected
+            fields_to_update.append('rejection_reason')
 
-        instance.save()
+        # Update other allowed fields if present in validated_data
+        for field_name in ['allergies', 'observations']:
+            if field_name in validated_data:
+                setattr(instance, field_name, validated_data[field_name])
+                fields_to_update.append(field_name)
+
+        if fields_to_update:
+            instance.save(update_fields=fields_to_update)
         return instance
 
 class StudentSimpleSerializer(serializers.ModelSerializer):
     """
-    Serializer simplificado para o modelo Student, focado em identificação.
+    Simplified serializer for the Student model, focused on identification.
+    Useful for lists or dropdowns where only basic student info is needed.
     """
     full_name = serializers.CharField(source='user.get_full_name', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
@@ -164,11 +227,11 @@ class StudentReportSerializer(serializers.ModelSerializer):
     date_of_birth = serializers.DateField(source='user.profile.date_of_birth', read_only=True, allow_null=True)
 
     student_registration_status = serializers.CharField(source='get_registration_status_display', read_only=True)
-    student_enrollment_date = serializers.DateField(source='enrollment_date', read_only=True) # Student's own enrollment_date
+    student_enrollment_date = serializers.DateField(source='enrollment_date', read_only=True, help_text="Student's initial enrollment date in the school.")
 
     # Fields to be annotated by the ViewSet's queryset
-    current_grade_level_name = serializers.CharField(read_only=True, allow_null=True)
-    active_enrollment_school_year = serializers.IntegerField(read_only=True, allow_null=True) # Assuming year is an integer
+    current_grade_level_name = serializers.CharField(read_only=True, allow_null=True, help_text="Current grade level name, derived from active enrollment in the specified school year.")
+    active_enrollment_school_year = serializers.IntegerField(read_only=True, allow_null=True, help_text="School year of the active enrollment used for determining current grade level.")
 
     class Meta:
         model = Student

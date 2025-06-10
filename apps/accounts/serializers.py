@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User, UserProfile
+from django.utils.translation import gettext_lazy as _ # Import gettext_lazy
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
@@ -137,8 +138,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class UserEmailSerializer(serializers.ModelSerializer):
     """
-    Serializer for User model for email management.
+    Serializer for managing User emails.
+    Allows viewing user details and updating the email field.
+    Other fields are read-only.
     """
+    email = serializers.EmailField(help_text=_("User's email address. This field is updatable."))
+    user_type = serializers.CharField(help_text=_("Type of user account (e.g., STUDENT, TEACHER). Read-only.")) # Force CharField for display of choices
+
     class Meta:
         model = User
         fields = ('id', 'username', 'first_name', 'last_name', 'email', 'user_type')
@@ -153,10 +159,31 @@ class UserEmailSerializer(serializers.ModelSerializer):
 class UserManagementSerializer(serializers.ModelSerializer):
     """
     Serializer for User model for management by Direção/Admin.
-    Handles creation, update (specific fields), and detailed display.
+    Handles creation, update (specific fields), and detailed display of User accounts.
+    Designed for use by administrative users (e.g., Direção).
     """
-    # For display purposes, include user_type_display
-    user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
+    user_type_display = serializers.CharField(source='get_user_type_display', read_only=True, help_text=_("Verbose display name for the user type."))
+    # Explicitly define fields to add help_text or override properties
+    username = serializers.CharField(
+        help_text=_("Username. Required for new users. Cannot be changed after creation via this endpoint.")
+    )
+    email = serializers.EmailField(
+        required=True, # Model's email field is not blank/null
+        help_text=_("User's email address. Must be unique.")
+    )
+    user_type = serializers.ChoiceField(
+        choices=User.USER_TYPE_CHOICES,
+        required=True, # Model's user_type has a default, but explicit is better for API clarity on create
+        help_text=_("Type of user account. Determines permissions and role.")
+    )
+    first_name = serializers.CharField(required=False, allow_blank=True, help_text=_("User's first name (optional)."))
+    last_name = serializers.CharField(required=False, allow_blank=True, help_text=_("User's last name (optional)."))
+    password = serializers.CharField(
+        write_only=True,
+        style={'input_type': 'password'},
+        required=True, # Required for new users
+        help_text=_("User's password. Required for new users. Not readable. Not updatable for existing users via this endpoint.")
+    )
 
     class Meta:
         model = User
@@ -165,51 +192,42 @@ class UserManagementSerializer(serializers.ModelSerializer):
             'user_type', 'user_type_display',
             'is_active', 'is_staff', 'is_superuser',
             'date_joined', 'last_login',
-            'password' # Included for creation, write-only
+            'password'
         )
-        read_only_fields = ('id', 'date_joined', 'last_login', 'user_type_display') # username removed from here
+        read_only_fields = ('id', 'date_joined', 'last_login', 'user_type_display')
         extra_kwargs = {
-            'password': {'write_only': True, 'style': {'input_type': 'password'}, 'required': False},
-            # Fields like username, email, user_type are required by model (blank=False)
-            # and will be enforced by DRF on POST. No need for 'required: True' here,
-            # which would make them always required even for PATCH.
+            # username: help_text added above. It's not in read_only_fields to allow for create.
+            # email: help_text and required status handled above.
+            # user_type: help_text and required status handled above.
+            # password: help_text, write_only, required handled above.
+            'is_active': {'help_text': _("Designates whether this user should be treated as active. Unselect this instead of deleting accounts.")},
+            'is_staff': {'help_text': _("Designates whether the user can log into this admin site (e.g., access Django Admin).")},
+            'is_superuser': {'help_text': _("Designates that this user has all permissions without explicitly assigning them. Use with caution.")},
         }
 
     def create(self, validated_data):
-        # Ensure password is provided for creation
-        password = validated_data.pop('password', None)
-        if password is None:
-            raise serializers.ValidationError({"password": "Password is required for new users."})
-
-        user = User(**validated_data)
-        user.set_password(password) # Hash password
-        user.save()
+        # Password hashing is done by User.objects.create_user
+        # email, username, password will be in validated_data due to required=True or handled by create_user
+        user = User.objects.create_user(**validated_data)
         return user
 
     def update(self, instance, validated_data):
-        # Username should not be updatable. If provided, ignore it or raise error.
-        # For now, we simply don't assign it. The field is not in read_only_fields for create to work.
-        validated_data.pop('username', None)
+        # For updates, username should not be changed.
+        # Password is not updatable here (it's write_only and not explicitly handled for update).
+        # We allow partial updates, so only provided fields are updated.
 
-        # Password updates are not handled by this serializer for existing users
+        # Prevent username update attempts
+        if 'username' in validated_data:
+            validated_data.pop('username')
+            # Optionally, log this attempt or raise an error if strictness is preferred.
+            # For now, we silently ignore it to prevent accidental changes.
+
+        # Prevent password update attempts (password is write_only and not in instance fields for super().update)
         if 'password' in validated_data:
-            # Do not allow password changes through this general update endpoint
-            # Consider logging this attempt or simply ignoring it.
-            # For this implementation, we'll pop it to prevent accidental changes.
-            validated_data.pop('password', None)
-            # If you wanted to allow it, you would do:
-            # password = validated_data.pop('password')
-            # instance.set_password(password)
-            # But the requirement is to not handle it here.
+            validated_data.pop('password')
 
-        # Update other allowed fields
-        instance.email = validated_data.get('email', instance.email)
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-        instance.user_type = validated_data.get('user_type', instance.user_type)
-        instance.is_active = validated_data.get('is_active', instance.is_active)
-        instance.is_staff = validated_data.get('is_staff', instance.is_staff)
-        instance.is_superuser = validated_data.get('is_superuser', instance.is_superuser)
-
-        instance.save()
+        return super().update(instance, validated_data)
+        # The parent's update method will handle saving the instance with validated_data.
+        # Fields like email, first_name, last_name, user_type, is_active, is_staff, is_superuser
+        # will be updated if provided in validated_data.
         return instance

@@ -58,9 +58,18 @@ from .serializers import UserEmailSerializer
 
 class UserEmailManagementViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing user emails.
-    Allows listing, retrieving, and updating user emails.
-    Filtering by user_type is supported.
+    Provides administrative management of user email addresses.
+
+    **Permissions:** Requires admin user status.
+
+    **Supported Actions:**
+    - `list`: Retrieve a paginated list of users. Supports filtering by `user_type`.
+      Example: `/api/accounts/admin/users-email-management/?user_type=STUDENT`
+    - `retrieve`: Get details of a specific user by ID.
+    - `update` (PUT): Update a user's details. Only the `email` field is effectively updatable.
+    - `partial_update` (PATCH): Partially update a user's details. Only the `email` field is effectively updatable.
+
+    Other fields (`username`, `first_name`, `last_name`, `user_type`) are read-only through this endpoint.
     """
     queryset = User.objects.all().order_by('username')
     serializer_class = UserEmailSerializer
@@ -103,8 +112,22 @@ class UserFilter(filters.FilterSet):
 
 class UserManagementViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing Users by Direção/Admin.
-    Allows CRUD operations on User accounts, with specific field handling.
+    Provides comprehensive administrative management of User accounts.
+
+    **Permissions:** Requires admin user status.
+
+    **Supported Actions:**
+    - `list`: Retrieve a paginated list of users. Supports filtering by `username`, `email`, `user_type`, and `is_active`.
+      Example: `/api/accounts/admin/users/?email=test@example.com&user_type=TEACHER`
+    - `create`: Create a new user. Requires `username`, `email`, `password`, and `user_type`.
+    - `retrieve`: Get details of a specific user by ID.
+    - `update` (PUT): Fully update a user's details. `username` and `password` cannot be changed via this method.
+    - `partial_update` (PATCH): Partially update a user's details. `username` and `password` cannot be changed via this method.
+    - `destroy`: Delete a user account. (Use with caution; deactivating is often preferred).
+
+    **Note on Updates:**
+    - `username` is read-only for existing users.
+    - `password` cannot be updated using PUT/PATCH on this endpoint. A dedicated password change mechanism should be used if needed.
     """
     queryset = User.objects.all().order_by('username')
     serializer_class = UserManagementSerializer

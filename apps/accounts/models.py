@@ -34,6 +34,16 @@ class User(AbstractUser):
         help_text=_('Designates the role of the user in the system.'),
     )
 
+    # Link to School Units for access permissions
+    # Make sure to import SchoolUnit: from apps.core.models import SchoolUnit
+    school_units_access = models.ManyToManyField(
+       'core.SchoolUnit', # Use string 'app_label.ModelName'
+       blank=True,
+       related_name='users_with_access',
+       verbose_name=_('school units access'),
+       help_text=_("School units this user has permissions to access data from.")
+    )
+
     # Adicionar related_name para evitar conflitos com o User padrão do Django, se necessário.
     # groups = models.ManyToManyField(
     #     'auth.Group',
@@ -96,6 +106,18 @@ class UserProfile(models.Model):
     )
     # Adicionar outros campos conforme necessário, como foto de perfil, etc.
     # profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+
+    # Link to SchoolUnit
+    # Make sure to import SchoolUnit: from apps.core.models import SchoolUnit
+    active_school_unit = models.ForeignKey(
+       'core.SchoolUnit', # Use string 'app_label.ModelName' to avoid circular import if SchoolUnit is in another app
+       on_delete=models.SET_NULL,
+       null=True,
+       blank=True,
+       related_name='user_profiles_active_here',
+       verbose_name=_('active school unit'),
+       help_text=_("The school unit this user is currently primarily associated with or operating within.")
+    )
 
     def __str__(self):
         return f"{self.user.username}'s Profile"

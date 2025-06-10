@@ -4,11 +4,32 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone # Para validação de data no PaymentWriteSerializer
 
 class FeeSerializer(serializers.ModelSerializer):
-    student_name = serializers.SerializerMethodField()
-    school_year_str = serializers.CharField(source='school_year.__str__', read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    is_overdue = serializers.BooleanField(read_only=True)
-    total_value = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    """
+    Read-only serializer for Fee details.
+    Includes calculated fields like student name, school year string representation,
+    status display, overdue status, and total value.
+    """
+    student = serializers.PrimaryKeyRelatedField(read_only=True, help_text=_("ID of the student associated with this fee."))
+    student_name = serializers.SerializerMethodField(method_name='get_student_name_typed', help_text=_("Full name of the student."))
+    school_year = serializers.PrimaryKeyRelatedField(read_only=True, help_text=_("ID of the school year this fee pertains to."))
+    school_year_str = serializers.CharField(source='school_year.__str__', read_only=True, help_text=_("String representation of the school year (e.g., '2023-2024')."))
+    description = serializers.CharField(read_only=True, help_text=_("Description of the fee (e.g., Monthly Fee, Material Fee)."))
+    due_date = serializers.DateField(read_only=True, help_text=_("Date when the fee is due."))
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True, help_text=_("Base amount of the fee."))
+    status = serializers.CharField(read_only=True, help_text=_("Current status of the fee (e.g., PENDING, PAID)."))
+    status_display = serializers.CharField(source='get_status_display', read_only=True, help_text=_("Display name for the fee status."))
+    payment_gateway_id = serializers.CharField(read_only=True, allow_null=True, help_text=_("Optional ID from an external payment gateway."))
+    barcode = serializers.CharField(read_only=True, allow_null=True, help_text=_("Barcode for payment slip, if applicable."))
+    notes = serializers.CharField(read_only=True, allow_null=True, help_text=_("Administrative notes regarding this fee."))
+    discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True, help_text=_("Amount of discount applied to this fee."))
+    penalty_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True, help_text=_("Penalty amount for late payment, if any."))
+    amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True, help_text=_("Total amount paid towards this fee so far."))
+    payment_date = serializers.DateField(read_only=True, allow_null=True, help_text=_("Date when the fee was fully or partially paid."))
+    is_overdue = serializers.BooleanField(read_only=True, help_text=_("True if the fee is past its due date and not fully paid."))
+    total_value = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True, help_text=_("Calculated total value of the fee (amount - discount + penalty)."))
+    created_at = serializers.DateTimeField(read_only=True, help_text=_("Timestamp of fee creation."))
+    updated_at = serializers.DateTimeField(read_only=True, help_text=_("Timestamp of last fee update."))
+
 
     class Meta:
         model = Fee
@@ -33,17 +54,30 @@ class FeeSerializer(serializers.ModelSerializer):
             'is_overdue',
             'total_value',
             'created_at',
-            'updated_at',
+            'updated_at', # All fields included for comprehensive read-only view
         )
+        read_only_fields = fields # Ensure all are read-only
 
-    def get_student_name(self, obj):
+    def get_student_name_typed(self, obj: Fee) -> str | None:
         if obj.student and obj.student.user:
             return obj.student.user.get_full_name() or obj.student.user.username
         return None
 
 class FeeEditLogSerializer(serializers.ModelSerializer):
-    edited_by_name = serializers.SerializerMethodField()
-    fee_description = serializers.CharField(source='fee.description', read_only=True)
+    """
+    Serializer for FeeEditLog entries.
+    Provides a read-only log of changes made to Fee records.
+    """
+    edited_by = serializers.PrimaryKeyRelatedField(read_only=True, help_text=_("User who made the change."))
+    edited_by_name = serializers.SerializerMethodField(method_name='get_edited_by_name_typed', help_text=_("Name of the user who made the change."))
+    fee = serializers.PrimaryKeyRelatedField(read_only=True, help_text=_("The fee that was edited."))
+    fee_description = serializers.CharField(source='fee.description', read_only=True, help_text=_("Description of the fee that was edited."))
+    timestamp = serializers.DateTimeField(read_only=True, help_text=_("When the change was made."))
+    field_changed = serializers.CharField(read_only=True, help_text=_("The specific field of the fee that was changed."))
+    previous_value = serializers.CharField(read_only=True, help_text=_("Value of the field before the change."))
+    new_value = serializers.CharField(read_only=True, help_text=_("Value of the field after the change."))
+    reason = serializers.CharField(read_only=True, help_text=_("Reason provided for making the change."))
+
 
     class Meta:
         model = FeeEditLog
@@ -56,22 +90,34 @@ class FeeEditLogSerializer(serializers.ModelSerializer):
             'timestamp',
             'field_changed',
             'previous_value',
-            'new_value',
+            'new_value', # All relevant fields included
             'reason',
         )
-        read_only_fields = ('timestamp',)
+        read_only_fields = fields # All fields are read-only
 
 
-    def get_edited_by_name(self, obj):
+    def get_edited_by_name_typed(self, obj: FeeEditLog) -> str | None:
         if obj.edited_by:
             return obj.edited_by.get_full_name() or obj.edited_by.username
         return None
 
 class PaymentSerializer(serializers.ModelSerializer): # Read-focused
-    payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
-    fee_description = serializers.CharField(source='fee.description', read_only=True)
-    student_name = serializers.SerializerMethodField()
-    confirmed_by_name = serializers.SerializerMethodField()
+    """
+    Read-only serializer for Payment details.
+    Includes display names for choices and related object information.
+    """
+    fee = serializers.PrimaryKeyRelatedField(read_only=True, help_text=_("ID of the fee this payment is associated with."))
+    fee_description = serializers.CharField(source='fee.description', read_only=True, help_text=_("Description of the associated fee."))
+    student_name = serializers.SerializerMethodField(method_name='get_student_name_typed', help_text=_("Name of the student this payment is for (via the fee)."))
+    payment_date = serializers.DateField(read_only=True, help_text=_("Date the payment was made."))
+    amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True, help_text=_("Amount paid in this transaction."))
+    payment_method = serializers.CharField(read_only=True, help_text=_("Method used for payment (e.g., CC, BANK_TRANSFER)."))
+    payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True, help_text=_("Display name for the payment method."))
+    transaction_id = serializers.CharField(read_only=True, allow_null=True, help_text=_("Optional transaction ID from a payment gateway or bank."))
+    notes = serializers.CharField(read_only=True, allow_null=True, help_text=_("Administrative notes about this payment."))
+    confirmed_by = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True, help_text=_("User who confirmed this payment, if applicable."))
+    confirmed_by_name = serializers.SerializerMethodField(method_name='get_confirmed_by_name_typed', help_text=_("Name of the user who confirmed the payment."))
+    created_at = serializers.DateTimeField(read_only=True, help_text=_("Timestamp of when this payment record was created."))
 
     class Meta:
         model = Payment
@@ -87,23 +133,45 @@ class PaymentSerializer(serializers.ModelSerializer): # Read-focused
             'transaction_id',
             'notes',
             'confirmed_by',
-            'confirmed_by_name',
+            'confirmed_by_name', # User who confirmed
             'created_at',
         )
-        read_only_fields = ('created_at',)
+        read_only_fields = fields # All fields are read-only
 
-    def get_student_name(self, obj):
+    def get_student_name_typed(self, obj: Payment) -> str | None:
         if obj.fee and obj.fee.student and obj.fee.student.user:
             return obj.fee.student.user.get_full_name() or obj.fee.student.user.username
         return None
 
-    def get_confirmed_by_name(self, obj):
+    def get_confirmed_by_name_typed(self, obj: Payment) -> str | None:
         if obj.confirmed_by:
             return obj.confirmed_by.get_full_name() or obj.confirmed_by.username
         return None
 
 class FeeWriteSerializer(serializers.ModelSerializer):
-    edit_reason = serializers.CharField(write_only=True, required=False, allow_blank=True, label=_("Motivo da Edição"))
+    """
+    Serializer for creating and updating Fee records.
+    Includes a field for edit reason when updating.
+    """
+    # Need to import Student and SchoolYear models to use in queryset
+    from apps.students.models import Student
+    from apps.academics.models import SchoolYear
+
+    student = serializers.PrimaryKeyRelatedField(queryset=Student.objects.all(), help_text=_("ID of the student this fee applies to."))
+    school_year = serializers.PrimaryKeyRelatedField(queryset=SchoolYear.objects.all(), help_text=_("ID of the school year for this fee."))
+    description = serializers.CharField(max_length=255, help_text=_("Description of the fee."))
+    due_date = serializers.DateField(help_text=_("Date when the fee is due."))
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, help_text=_("Base amount of the fee."))
+    status = serializers.ChoiceField(choices=Fee.STATUS_CHOICES, help_text=_("Current status of the fee.")) # Corrected to STATUS_CHOICES
+    notes = serializers.CharField(required=False, allow_blank=True, style={'base_template': 'textarea.html'}, help_text=_("Optional administrative notes."))
+    payment_gateway_id = serializers.CharField(max_length=100, required=False, allow_blank=True, help_text=_("Optional ID from an external payment gateway."))
+    barcode = serializers.CharField(max_length=255, required=False, allow_blank=True, help_text=_("Optional barcode for payment slip."))
+    discount_amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0, help_text=_("Amount of discount. Defaults to 0."))
+    penalty_amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0, help_text=_("Penalty for late payment. Defaults to 0."))
+    amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, default=0, help_text=_("Amount already paid. Defaults to 0."))
+    payment_date = serializers.DateField(required=False, allow_null=True, help_text=_("Date of last payment, if any."))
+    edit_reason = serializers.CharField(write_only=True, required=False, allow_blank=True, label=_("Motivo da Edição"), help_text=_("Reason for editing the fee, required for updates if changes are significant."))
+
 
     class Meta:
         model = Fee

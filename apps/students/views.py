@@ -12,20 +12,35 @@ from apps.accounts.models import UserProfile, User # Reverted import
 from apps.students.models import Student, GradeLevel, StudentParentAssociation, StudentDocument
 from apps.students.serializers import StudentSerializer # Importar StudentSerializer
 
+# Define a minimal serializer for drf-spectacular to pick up
+class EmptySerializer(serializers.Serializer): # Make sure 'serializers' is imported if not already
+    pass
+
 class PreRegistrationAPIView(APIView):
     """
-    API View para o processo de pré-cadastro de alunos.
-    Esta view será acessível publicamente.
-    Espera um payload multipart/form-data com as seguintes chaves principais:
-    - "parent_user_data" (JSON string ou campos de formulário prefixados): Dados para User do responsável.
-    - "parent_profile_data" (JSON string ou campos de formulário prefixados): Dados para UserProfile do responsável.
-    - "parent_relationship_type": Tipo de relação do responsável.
-    - "student_user_data" (JSON string ou campos de formulário prefixados): Dados para User do aluno.
-    - "student_profile_data" (JSON string ou campos de formulário prefixados): Dados para UserProfile do aluno.
-    - "student_data" (JSON string ou campos de formulário prefixados): Dados para Student.
-    - "document_types" (lista): Lista dos tipos de documentos enviados.
-    - "document_files" (lista de arquivos): Lista dos arquivos de documentos.
+    Handles the public pre-registration process for new students.
+
+    This endpoint is publicly accessible and expects a multipart/form-data payload
+    due to file uploads for student documents.
+
+    **Key Expected Payload Fields:**
+    - `parent_user_data` (JSON string or form fields): Data for the parent's User account (e.g., username, email, password).
+    - `parent_profile_data` (JSON string or form fields): Data for the parent's UserProfile (e.g., CPF, address).
+    - `parent_relationship_type` (string): Relationship of the parent to the student (e.g., 'MOTHER', 'FATHER').
+    - `student_user_data` (JSON string or form fields): Data for the student's User account.
+    - `student_profile_data` (JSON string or form fields): Data for the student's UserProfile.
+    - `student_data` (JSON string or form fields): Data for the Student record itself (e.g., `grade_level_pretended_id`, `allergies`).
+        - `grade_level_pretended_id` (integer, required in `student_data`): ID of the GradeLevel the student is applying for.
+    - `document_types` (list of strings): List of document types being uploaded (e.g., ['RG', 'CPF_STUDENT']). Must match `document_files`.
+    - `document_files` (list of files): List of uploaded document files. Must match `document_types`.
+
+    **On Success (HTTP 201 Created):**
+    Returns a success message with IDs of created entities.
+
+    **On Failure (HTTP 400 Bad Request or 500 Internal Server Error):**
+    Returns an error message detailing the issue.
     """
+    serializer_class = EmptySerializer # For schema generation; actual validation is custom.
     permission_classes = [AllowAny]
     parser_classes = (MultiPartParser, FormParser)
 
@@ -141,11 +156,20 @@ class PreRegistrationAPIView(APIView):
 
 class PendingRegistrationViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet para listar e recuperar registros de alunos pendentes de validação.
-    Permite que administradores aprovem ou rejeitem esses registros.
+    Manages student registrations that are pending validation by administrative staff.
+
+    **Permissions:** Requires admin user status.
+
+    **Supported Actions:**
+    - `list`: Retrieves students with 'Pending Validation' status.
+    - `retrieve`: Gets details of a specific student pending validation.
+    - `approve` (custom action): Approves a student's registration.
+    - `reject` (custom action): Rejects a student's registration, requiring a reason.
     """
-    serializer_class = StudentSerializer
+    queryset = Student.objects.none()  # Base queryset for schema generation; actual data from get_queryset.
+    serializer_class = StudentSerializer # Used for list and retrieve actions.
     permission_classes = [IsAdminUser] # Apenas usuários admin/staff podem acessar
+    lookup_field = 'pk' # Student model's PK is 'user' (OneToOneField to User) which acts as 'pk'
 
     def get_queryset(self):
         """
@@ -166,11 +190,13 @@ class PendingRegistrationViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['post'], url_path='approve-registration')
     def approve(self, request, pk=None):
         """
-        Aprova o registro de um aluno.
-        Muda o status para 'ACTIVE' e pode definir a data de matrícula.
+        Approves a student's pending registration.
+
+        Changes the student's `registration_status` to 'ACTIVE'.
+        No request body is expected.
         """
         student = get_object_or_404(Student, pk=pk)
-        if student.registration_status != Student.STATUS_PENDING_VALIDATION:
+        if student.registration_status != Student.RegistrationStatus.PENDING_VALIDATION:
             return Response(
                 {'error': 'Este aluno não está pendente de validação.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -188,31 +214,48 @@ class PendingRegistrationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Rejeita o registro de um aluno.
         Muda o status para 'REJECTED' e registra o motivo.
+
+        **Expected Request Body:**
+        ```json
+        {
+            "reason": "Detailed reason for rejection."
+        }
+        ```
         """
         student = get_object_or_404(Student, pk=pk)
-        if student.registration_status != Student.STATUS_PENDING_VALIDATION:
+        if student.registration_status != Student.RegistrationStatus.PENDING_VALIDATION:
             return Response(
-                {'error': 'Este aluno não está pendente de validação.'},
+                {'error': 'This student is not pending validation.'}, # Changed to English
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         rejection_reason = request.data.get('reason')
         if not rejection_reason:
             return Response(
-                {'error': 'O motivo da rejeição é obrigatório.'},
+                {'error': 'Rejection reason is required.'}, # Changed to English
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        student.registration_status = Student.STATUS_REJECTED
-        student.rejection_reason = rejection_reason # Salva o motivo no novo campo
-        student.save()
-        return Response({'status': 'success', 'message': f'Matrícula do aluno {student} rejeitada.'})
+        student.registration_status = Student.RegistrationStatus.REJECTED # Corrected constant
+        student.rejection_reason = rejection_reason
+        student.save(update_fields=['registration_status', 'rejection_reason']) # Specify update_fields
+        return Response({'status': 'success', 'message': f'Student registration {student} rejected.'}) # Changed to English
 
 
 class StudentManagementViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for Secretaria to manage student lifecycle and data.
-    Allows listing, retrieving, and updating (PATCH) student records.
+    Provides administrative management of student records by Secretaria/staff.
+
+    **Permissions:** Requires admin user status (or specific 'Secretaria' group).
+
+    **Supported Actions:**
+    - `list`: Retrieves a list of all students. Supports filtering by `registration_status` and `grade_level_pretended`.
+    - `retrieve`: Gets details of a specific student.
+    - `partial_update` (PATCH): Updates specific fields of a student record (e.g., `registration_status`, `allergies`, `observations`, `rejection_reason`).
+      Refer to `StudentSerializer` for updatable fields.
+
+    Direct creation (POST), full update (PUT), and deletion (DELETE) are typically not performed
+    through this endpoint, but through more specific processes like pre-registration or enrollment actions.
     """
     queryset = Student.objects.all().select_related(
         'user', 'user__profile', 'grade_level_pretended'
@@ -242,14 +285,25 @@ from apps.academics.models import Enrollment, SchoolClass, SchoolYear # Reverted
 from .models import Student # Import Student model
 from .serializers import StudentReportSerializer # Import the new report serializer
 from django.utils import timezone
+from apps.auditing.decorators import audit_view_action # Import decorator
+from apps.auditing.models import AuditLog # Import AuditLog for action types
 
 class StudentListCSVExportView(generics.ListAPIView):
     """
     API View to export a list of students to a CSV file.
-    Supports filtering by grade_level_id, registration_status, and school_year_id (for active enrollment).
+
+    **Permissions:** Requires admin user status.
+
+    **Supported Query Parameters for Filtering:**
+    - `grade_level_id` (integer): Filter students by their current enrolled grade level ID (based on active enrollment in `school_year_id` if provided).
+    - `registration_status` (string): Filter students by their registration status (e.g., 'ACTIVE', 'PRE_REGISTERED').
+    - `school_year_id` (integer): Specify the school year context for determining 'current_grade_level_name' and 'active_enrollment_school_year' annotations.
+                                 If provided, `grade_level_id` filter will apply to enrollments within this school year.
+
+    The output CSV includes student details, profile information, and annotated enrollment data.
     """
     renderer_classes = (CSVRenderer,)
-    serializer_class = StudentReportSerializer
+    serializer_class = StudentReportSerializer # Defines columns for the CSV report.
     permission_classes = [IsAdminUser] # Or your specific permission
 
     def get_queryset(self):
@@ -323,13 +377,34 @@ class StudentListCSVExportView(generics.ListAPIView):
         response['Content-Disposition'] = f'attachment; filename="{self.get_filename()}"'
         return response
 
+    @audit_view_action(
+        action_type=AuditLog.ACTION_EXPORTED,
+        details_extractor=lambda view, req, resp, *args, **kwargs: {
+            'report_name': 'Student List CSV',
+            'filters_applied': req.query_params.dict()
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
 
 from .serializers import StudentDocumentSerializer # Import StudentDocumentSerializer
 
 class StudentDocumentManagementViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for Secretaria to manage student documents, specifically for validation.
-    Allows listing, retrieving, and updating (PATCH) document status and notes.
+    ViewSet for Secretaria/administrative staff to manage student documents.
+    Focuses on validating documents by updating their `validation_status` and `notes`.
+
+    **Permissions:** Requires admin user status (or specific 'Secretaria' group).
+
+    **Supported Actions:**
+    - `list`: Retrieves a list of student documents. Supports filtering by `validation_status`, `document_type`, and `student` (student ID).
+    - `retrieve`: Gets details of a specific student document.
+    - `partial_update` (PATCH): Updates the `validation_status` and/or `notes` of a document.
+      Refer to `StudentDocumentSerializer` for updatable fields.
+
+    Creation (POST), full update (PUT), and deletion (DELETE) of documents are typically handled
+    during pre-registration or other dedicated document upload processes.
     """
     queryset = StudentDocument.objects.all().select_related(
         'student', 'student__user'

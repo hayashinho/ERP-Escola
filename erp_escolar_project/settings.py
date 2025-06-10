@@ -65,13 +65,17 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist', # Para funcionalidade de logout
     'django_filters',                           # Para filtros avançados
+    'drf_spectacular',                          # For API schema generation
     # 'ratelimit',                                # Para rate limiting (REVERTIDO PARA COMENTADO)
 
     # Meus apps
-    'accounts.apps.AccountsConfig', # Specific state: no 'apps.' prefix here
-    'students.apps.StudentsConfig',   # Specific state: no 'apps.' prefix here
-    'academics.apps.AcademicsConfig', # Specific state: no 'apps.' prefix here
-    'financials.apps.FinancialsConfig', # Specific state: no 'apps.' prefix here
+    'apps.core.apps.CoreConfig', # Added Core app
+    'apps.accounts.apps.AccountsConfig',
+    'apps.students.apps.StudentsConfig',
+    'apps.academics.apps.AcademicsConfig',
+    'apps.financials.apps.FinancialsConfig',
+    'apps.communications.apps.CommunicationsConfig',
+    'apps.auditing.apps.AuditingConfig', # New auditing app
 ]
 
 # Configuração do Modelo de Usuário Customizado
@@ -160,6 +164,18 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
+# Email Configuration (for development)
+# In production, use a real email backend (e.g., django.core.mail.backends.smtp.EmailBackend)
+# and configure SMTP settings (EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD).
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@erpescolar.com' # Example default sender
+
+# Site URL (used for constructing full URLs in emails, etc.)
+# Ensure this reflects the actual domain in production.
+SITE_URL = 'http://localhost:8000' # For development
+
+
 # Configurações do Django REST Framework e Simple JWT
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -174,6 +190,15 @@ REST_FRAMEWORK = {
     # ],
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     # 'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema', # Added for drf-spectacular
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'ERP Escolar API',
+    'DESCRIPTION': 'API para o Sistema de Gestão Escolar (ERP Escolar)',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False, # Set to True for local development if schema view is desired
+    # 'COMPONENT_SPLIT_REQUEST': True,
 }
 
 # Configurações adicionais do Simple JWT (opcional, mas bom para referência)

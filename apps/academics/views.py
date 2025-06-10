@@ -22,38 +22,48 @@ from apps.academics.serializers import (
 )
 
 class BaseMyStudentDataViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.none() # Placeholder for schema generation for base class
     permission_classes = [IsAuthenticated]
     related_field_lookup_student = None
     related_field_lookup_student_id_in = None
 
     def _filter_queryset_by_user_role(self, initial_queryset):
+        # Internal helper method, docstring not critical for schema
         user = self.request.user
         if not self.related_field_lookup_student or not self.related_field_lookup_student_id_in:
             return initial_queryset.none()
         if user.user_type == User.USER_TYPE_STUDENT:
             try:
-                student = Student.objects.get(user=user)
+                student = Student.objects.get(user=user) # Ensure Student is imported
                 return initial_queryset.filter(**{self.related_field_lookup_student: student})
             except Student.DoesNotExist:
                 return initial_queryset.none()
         elif user.user_type == User.USER_TYPE_PARENT:
             try:
+                # Ensure StudentParentAssociation is imported
                 student_ids = StudentParentAssociation.objects.filter(parent_user=user).values_list('student_id', flat=True)
                 if not student_ids:
                     return initial_queryset.none()
                 return initial_queryset.filter(**{self.related_field_lookup_student_id_in: list(student_ids)})
-            except Exception:
+            except Exception: # Broad exception, consider specific ones if identifiable
                 return initial_queryset.none()
-        else:
-            if user.is_staff or user.is_superuser:
+        else: # Other user types
+            if user.is_staff or user.is_superuser: # Admin/staff see all
                 return initial_queryset
-            return initial_queryset.none()
+            return initial_queryset.none() # Default deny for other authenticated roles not covered
 
 
 class MyGradesViewSet(BaseMyStudentDataViewSet):
+    """
+    Provides read-only access to grades for the authenticated user.
+    Students see their own grades. Parents see grades of their associated children.
+    Staff/admins can see all grades (behavior from base class if not overridden).
+    """
+    queryset = Grade.objects.none()
     serializer_class = GradeSerializer
-    related_field_lookup_student = 'enrollment__student'
-    related_field_lookup_student_id_in = 'enrollment__student_id__in'
+    related_field_lookup_student = 'enrollment__student' # Field path on Grade model to Student
+    related_field_lookup_student_id_in = 'enrollment__student_id__in' # For parent's multiple children
+
     def get_queryset(self):
         initial_queryset = Grade.objects.select_related(
             'enrollment__student__user', 'subject', 'grading_period', 'grading_period__school_year'
@@ -62,9 +72,16 @@ class MyGradesViewSet(BaseMyStudentDataViewSet):
 
 
 class MyAttendanceViewSet(BaseMyStudentDataViewSet):
+    """
+    Provides read-only access to attendance records for the authenticated user.
+    Students see their own attendance. Parents see attendance of their associated children.
+    Staff/admins can see all records.
+    """
+    queryset = Attendance.objects.none()
     serializer_class = AttendanceSerializer
     related_field_lookup_student = 'enrollment__student'
     related_field_lookup_student_id_in = 'enrollment__student_id__in'
+
     def get_queryset(self):
         initial_queryset = Attendance.objects.select_related(
             'enrollment__student__user', 'subject', 'enrollment__school_class'
@@ -73,9 +90,18 @@ class MyAttendanceViewSet(BaseMyStudentDataViewSet):
 
 
 class MySchoolEventsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Provides read-only access to school events relevant to the authenticated user.
+    Filters events based on user type (Student, Parent) to show school-wide events
+    or events targeted at their specific grade levels or school classes.
+    Staff/admins see all events.
+    """
+    queryset = SchoolEvent.objects.none()
     serializer_class = SchoolEventSerializer
     permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
+        # Docstring for get_queryset explains its complex filtering logic based on user role.
         user = self.request.user
         base_queryset = SchoolEvent.objects.select_related('created_by').prefetch_related(
             'target_school_classes', 'target_grade_levels'
@@ -109,9 +135,20 @@ class MySchoolEventsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class MyDidacticMaterialsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Provides read-only access to didactic materials relevant to the authenticated user.
+    Filters materials based on user type:
+    - Students: Materials for their class or general materials.
+    - Parents: Materials for their children's classes or general materials.
+    - Teachers: Materials they uploaded or for their assigned classes/subjects.
+    - Staff/Admins: All materials.
+    """
+    queryset = DidacticMaterial.objects.none()
     serializer_class = DidacticMaterialSerializer
     permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
+        # Docstring for get_queryset explains its complex filtering logic.
         user = self.request.user
         base_queryset = DidacticMaterial.objects.select_related('subject', 'school_class', 'uploader', 'uploader__profile').order_by('-upload_date')
         if user.is_staff or user.is_superuser: return base_queryset
@@ -146,9 +183,17 @@ class MyDidacticMaterialsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class MyTeacherAssignmentsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Provides read-only access for authenticated teachers to view their own assignments
+    (subjects and classes they are assigned to teach).
+    Includes a custom action to list students for grading within a specific assignment.
+    """
+    queryset = TeacherAssignment.objects.none()
     serializer_class = TeacherAssignmentSerializer
-    permission_classes = [IsAuthenticated, IsTeacher]
+    permission_classes = [IsAuthenticated, IsTeacher] # Custom IsTeacher permission
+
     def get_queryset(self):
+        # Filters assignments to the currently authenticated teacher.
         user = self.request.user
         return TeacherAssignment.objects.filter(teacher=user).select_related(
             'school_class__grade_level', 'school_class__school_year', 'subject', 'school_year'
@@ -156,6 +201,13 @@ class MyTeacherAssignmentsViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='students-for-grading')
     def students_for_grading(self, request, pk=None):
+        """
+        Custom action for a teacher to list students in their assigned class (from this assignment)
+        along with their existing grades for the assignment's subject and a specified grading period.
+
+        Query Parameters:
+        - `grading_period_id` (required): ID of the GradingPeriod for which to fetch grades.
+        """
         teacher_assignment = self.get_object()
         grading_period_id = request.query_params.get('grading_period_id')
         if not grading_period_id:
@@ -180,8 +232,16 @@ class MyTeacherAssignmentsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class TeacherGradeViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsTeacher]
+    """
+    Allows authenticated teachers to manage (CRUD) grades for students
+    in classes and subjects they are assigned to.
+    Permissions are checked to ensure teachers only modify grades for their assignments.
+    """
+    queryset = Grade.objects.none()
+    permission_classes = [IsAuthenticated, IsTeacher] # Custom IsTeacher permission
+
     def get_serializer_class(self):
+        # Uses GradeSerializer for read, GradeWriteSerializer for write.
         if self.action in ['list', 'retrieve']:
             return GradeSerializer
         return GradeWriteSerializer
@@ -239,8 +299,16 @@ class TeacherGradeViewSet(viewsets.ModelViewSet):
 
 
 class TeacherAttendanceViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsTeacher]
+    """
+    Allows authenticated teachers to manage (CRUD) attendance records for students
+    in classes and subjects they are assigned to, for specific dates.
+    Permissions ensure teachers only manage attendance for their assignments.
+    """
+    queryset = Attendance.objects.none()
+    permission_classes = [IsAuthenticated, IsTeacher] # Custom IsTeacher permission
+
     def get_serializer_class(self):
+        # Uses AttendanceSerializer for read, AttendanceWriteSerializer for write.
         if self.action in ['list', 'retrieve']:
             return AttendanceSerializer
         return AttendanceWriteSerializer
@@ -303,8 +371,16 @@ class TeacherAttendanceViewSet(viewsets.ModelViewSet):
 
 
 class TeacherSchoolEventViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsTeacher]
+    """
+    Allows authenticated teachers to manage (CRUD) school events they create.
+    Teachers can target events to classes/grades they are assigned to, or create school-wide events
+    if permitted by broader system policy (not enforced here, relies on admin setup).
+    """
+    queryset = SchoolEvent.objects.none()
+    permission_classes = [IsAuthenticated, IsTeacher] # Custom IsTeacher permission
+
     def get_serializer_class(self):
+        # Uses SchoolEventSerializer for read, SchoolEventWriteSerializer for write.
         if self.action in ['list', 'retrieve']:
             return SchoolEventSerializer
         return SchoolEventWriteSerializer
@@ -342,10 +418,18 @@ class TeacherSchoolEventViewSet(viewsets.ModelViewSet):
 
 
 class TeacherDidacticMaterialViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsTeacher]
-    parser_classes = (MultiPartParser, FormParser) # Para upload de arquivos
+    """
+    Allows authenticated teachers to manage (CRUD) didactic materials they upload.
+    Materials can be associated with specific subjects and optionally specific classes
+    for which the teacher has assignments.
+    Supports file uploads.
+    """
+    queryset = DidacticMaterial.objects.none()
+    permission_classes = [IsAuthenticated, IsTeacher] # Custom IsTeacher permission
+    parser_classes = (MultiPartParser, FormParser) # For file uploads
 
     def get_serializer_class(self):
+        # Uses DidacticMaterialSerializer for read, DidacticMaterialWriteSerializer for write.
         if self.action in ['list', 'retrieve']:
             return DidacticMaterialSerializer
         return DidacticMaterialWriteSerializer
@@ -395,8 +479,18 @@ from .serializers import EnrollmentSerializer # Import EnrollmentSerializer
 
 class EnrollmentViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing Student Enrollments in SchoolClasses.
-    Allows creation, update (status), listing, and retrieval.
+    Provides administrative management of student enrollments in school classes.
+
+    **Permissions:** Requires admin user status (or specific 'Secretaria' group).
+
+    **Supported Actions:**
+    - `list`: Retrieve enrollments. Supports extensive filtering (see `filterset_fields`).
+    - `create`: Enroll a student in a class. Validates student status and school year activity.
+               Prevents duplicate active enrollments in the same school year.
+    - `retrieve`: Get details of a specific enrollment.
+    - `partial_update` (PATCH): Update an enrollment, typically its `status`.
+                                Student and school class cannot be changed post-creation.
+    - `destroy`: Delete an enrollment. (Caution: Consider impact on related records like grades/attendance).
     """
     queryset = Enrollment.objects.all().select_related(
         'student__user',
@@ -434,8 +528,14 @@ from .serializers import SchoolYearSerializer, BatchReenrollSerializer # Import 
 
 class SchoolYearViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing SchoolYears.
-    Includes a custom action for batch re-enrollment of students.
+    ViewSet for administrative management of School Years.
+
+    **Permissions:** Requires admin user status.
+
+    **Supported Actions:**
+    - Standard CRUD operations for school years (list, create, retrieve, update, destroy).
+    - `batch_reenroll` (custom action): Facilitates re-enrolling students from the selected
+      school year (source) to a new target school year.
     """
     queryset = SchoolYear.objects.all().order_by('-year')
     serializer_class = SchoolYearSerializer
@@ -443,6 +543,30 @@ class SchoolYearViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='batch-reenroll')
     def batch_reenroll(self, request, pk=None):
+        """
+        Performs batch re-enrollment of students from this school year (source, identified by `pk`)
+        to a new target school year.
+
+        **Request Body:**
+        Expects `BatchReenrollSerializer` fields:
+        ```json
+        {
+            "target_school_year_id": <ID of the target SchoolYear>
+        }
+        ```
+
+        **Process:**
+        1. Identifies students with 'ACTIVE' or 'COMPLETED' enrollments in the source school year.
+        2. Determines their next grade level based on `GradeLevel.order_in_sequence`.
+        3. Finds the first available `SchoolClass` in the target school year for that next grade.
+           (Note: Automatic class creation is not implemented. If no class is found, student is skipped.)
+        4. Creates a new 'ACTIVE' `Enrollment` for the student in the target class/year.
+        5. Updates the old 'ACTIVE' enrollment in the source year to 'COMPLETED'.
+
+        **Response:**
+        Returns a JSON summary of the operation, including counts of processed,
+        successfully re-enrolled, and skipped students, along with any errors.
+        """
         source_school_year = self.get_object()
 
         # Validate request data
@@ -589,7 +713,15 @@ class AnnouncementFilter(filters.FilterSet):
 
 class AnnouncementViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing Announcements.
+    Provides administrative management of school-wide or targeted announcements.
+
+    **Permissions:** Requires admin user status. (Teachers might create if rules are relaxed).
+
+    **Supported Actions:**
+    - Standard CRUD operations for announcements.
+    - Author is automatically set to the logged-in user on creation.
+    - Supports targeting by user types, grade levels, school classes, or school-wide.
+    - Filtering by various fields including dates, author, and targeting parameters.
     """
     queryset = Announcement.objects.all().select_related('author').prefetch_related(
         'target_grade_levels', 'target_school_classes'
@@ -602,6 +734,9 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
     # you might need to override get_queryset or use a custom filter class.
 
     def perform_create(self, serializer):
+        """
+        Sets the author of the announcement to the currently authenticated user.
+        """
         serializer.save(author=self.request.user)
 
     # Optional: Add custom logic for updates or deletions if needed
@@ -623,26 +758,45 @@ from rest_framework.views import APIView
 from django.db.models import Count
 from apps.students.models import Student # Reverted import: Import Student model
 from apps.academics.models import GradeLevel # GradeLevel from academics is used for M2M in Announcement, but student grade is from students.models
+from django.utils.decorators import method_decorator # For caching
+from django.views.decorators.cache import cache_page # For caching
+# from django.conf import settings # Not strictly needed for this decorator usage if default cache exists
 
 class DashboardSummaryView(APIView):
     """
-    Provides a summary of key indicators for an administrative dashboard.
+    Provides a cached summary of key indicators for an administrative dashboard.
+    This endpoint is read-only.
+
+    **Permissions:** Requires admin user status.
+
+    **Cache:** Results are cached for 5 minutes.
+
+    **Response Data Structure:**
+    Refer to `DashboardSummaryDataSerializer` in `apps.academics.serializers` for the detailed structure.
+    Includes counts like total active students, students by grade level, pre-registered students, etc.
     """
+    # For drf-spectacular to correctly infer the response schema,
+    # you would typically use @extend_schema(responses=DashboardSummaryDataSerializer)
+    # However, as this is a simple GET with a clear response structure,
+    # defining serializer_class on the view (even if not used directly by generic view logic)
+    # can sometimes help, or ensure DashboardSummaryDataSerializer is imported and clear.
+    # For now, we'll keep the placeholder and rely on the docstring and serializer definition.
+    serializer_class = drf_serializers.Serializer # Placeholder for drf-spectacular
     permission_classes = [IsAdminUser]
 
+    @method_decorator(cache_page(60 * 5)) # Cache for 5 minutes
     def get(self, request, *args, **kwargs):
+        # Logic for gathering dashboard data...
         # Total active students
-        total_active_students = Student.objects.filter(registration_status=Student.STATUS_ACTIVE).count()
+        total_active_students = Student.objects.filter(registration_status=Student.RegistrationStatus.ACTIVE).count()
 
-        # Active students by grade level (based on active enrollments)
-        # This counts distinct students per grade level if a student has multiple active enrollments in different classes of the same grade.
-        # If a student can only be in one grade level at a time via active enrollments, this is fine.
+        # Active students by grade level
         active_students_by_grade_level_query = Enrollment.objects.filter(
             status=Enrollment.STATUS_ACTIVE
         ).values(
-            'school_class__grade_level__name' # Use name from related GradeLevel (from students.models via SchoolClass)
+            'school_class__grade_level__name'
         ).annotate(
-            count=Count('student_id', distinct=True) # Count distinct students
+            count=Count('student_id', distinct=True)
         ).order_by('school_class__grade_level__order_in_sequence')
 
         active_students_by_grade_level_data = [
@@ -650,14 +804,9 @@ class DashboardSummaryView(APIView):
             for item in active_students_by_grade_level_query if item['school_class__grade_level__name'] is not None
         ]
 
-        # Other student counts by registration status
-        total_preregistered_students = Student.objects.filter(registration_status=Student.STATUS_PRE_REGISTERED).count()
-        total_pending_validation_students = Student.objects.filter(registration_status=Student.STATUS_PENDING_VALIDATION).count()
-
-        # Total active enrollments
+        total_preregistered_students = Student.objects.filter(registration_status=Student.RegistrationStatus.PRE_REGISTERED).count()
+        total_pending_validation_students = Student.objects.filter(registration_status=Student.RegistrationStatus.PENDING_VALIDATION).count()
         total_active_enrollments = Enrollment.objects.filter(status=Enrollment.STATUS_ACTIVE).count()
-
-        # Active school years
         active_school_years_count = SchoolYear.objects.filter(is_active=True).count()
 
         data = {
@@ -668,21 +817,38 @@ class DashboardSummaryView(APIView):
             'total_active_enrollments': total_active_enrollments,
             'active_school_years': active_school_years_count,
         }
+        # For drf-spectacular, explicitly serializing with the DashboardSummaryDataSerializer would be best:
+        # from .serializers import DashboardSummaryDataSerializer
+        # response_serializer = DashboardSummaryDataSerializer(data)
+        # return Response(response_serializer.data, status=status.HTTP_200_OK)
+        # However, if `data` dict matches the serializer structure, it often works.
         return Response(data, status=status.HTTP_200_OK)
 
 
 from rest_framework_csv.renderers import CSVRenderer
 from rest_framework import generics
-# from django.utils import timezone # Already imported if needed for filename
+# from django.utils import timezone # Already imported
 from .serializers import EnrollmentReportSerializer
+from apps.auditing.decorators import audit_view_action
+from apps.auditing.models import AuditLog
 
 class EnrollmentListCSVExportView(generics.ListAPIView):
     """
-    API View to export a list of enrollments to a CSV file.
-    Supports filtering by school_year_id, grade_level_id, school_class_id, status, and student_id.
+    Provides a CSV export of student enrollments.
+
+    **Permissions:** Requires admin user status.
+
+    **Supported Query Parameters for Filtering:**
+    - `school_year_id` (integer): Filter by School Year ID.
+    - `grade_level_id` (integer): Filter by Grade Level ID.
+    - `school_class_id` (integer): Filter by School Class ID.
+    - `status` (string): Filter by enrollment status (e.g., 'ACTIVE', 'COMPLETED').
+    - `student_id` (integer): Filter by Student ID.
+
+    The output CSV includes enrollment details, student information, and class context.
     """
     renderer_classes = (CSVRenderer,)
-    serializer_class = EnrollmentReportSerializer
+    serializer_class = EnrollmentReportSerializer # Defines columns for the CSV.
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):
@@ -723,3 +889,13 @@ class EnrollmentListCSVExportView(generics.ListAPIView):
         response = super().list(request, *args, **kwargs)
         response['Content-Disposition'] = f'attachment; filename="{self.get_filename()}"'
         return response
+
+    @audit_view_action(
+        action_type=AuditLog.ACTION_EXPORTED,
+        details_extractor=lambda view, req, resp, *args, **kwargs: {
+            'report_name': 'Enrollment List CSV',
+            'filters_applied': req.query_params.dict()
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)

@@ -15,6 +15,7 @@ from .serializers import FeeSerializer, PaymentSerializer, FeeWriteSerializer, P
 
 
 class BaseMyFinancialDataViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Fee.objects.none() # Placeholder for schema generation for base class (using Fee as an example, could be any)
     permission_classes = [IsAuthenticated]
 
     def _filter_queryset_by_user_role(self, initial_queryset, student_related_field_lookup):
@@ -56,6 +57,7 @@ class FeeFilter(FilterSet):
 
 
 class MyFeesViewSet(BaseMyFinancialDataViewSet):
+    queryset = Fee.objects.none() # Added for schema generation
     serializer_class = FeeSerializer
     filterset_class = FeeFilter
     def get_queryset(self):
@@ -72,6 +74,7 @@ class PaymentFilter(FilterSet):
 
 
 class MyPaymentsViewSet(BaseMyFinancialDataViewSet):
+    queryset = Payment.objects.none() # Added for schema generation
     serializer_class = PaymentSerializer
     filterset_class = PaymentFilter
     def get_queryset(self):

@@ -1,0 +1,5891 @@
+openapi: 3.0.3
+info:
+  title: ERP Escolar API
+  version: 1.0.0
+  description: API para o Sistema de Gestão Escolar (ERP Escolar)
+paths:
+  /api/academics/announcements/:
+    get:
+      operationId: academics_announcements_list
+      description: ViewSet for managing Announcements.
+      parameters:
+      - in: query
+        name: author
+        schema:
+          type: integer
+      - in: query
+        name: expiry_date__date__gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: expiry_date__date__lte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: expiry_date__isnull
+        schema:
+          type: boolean
+      - in: query
+        name: is_school_wide
+        schema:
+          type: boolean
+      - in: query
+        name: publication_date__date__gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: publication_date__date__lte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: target_grade_levels
+        schema:
+          type: array
+          items:
+            type: integer
+        explode: true
+        style: form
+      - in: query
+        name: target_school_classes
+        schema:
+          type: array
+          items:
+            type: integer
+        explode: true
+        style: form
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Announcement'
+          description: ''
+    post:
+      operationId: academics_announcements_create
+      description: ViewSet for managing Announcements.
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+  /api/academics/announcements/{id}/:
+    get:
+      operationId: academics_announcements_retrieve
+      description: ViewSet for managing Announcements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Announcement.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+    put:
+      operationId: academics_announcements_update
+      description: ViewSet for managing Announcements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Announcement.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Announcement'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+    patch:
+      operationId: academics_announcements_partial_update
+      description: ViewSet for managing Announcements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Announcement.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnouncement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnouncement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAnnouncement'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+          description: ''
+    delete:
+      operationId: academics_announcements_destroy
+      description: ViewSet for managing Announcements.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Announcement.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/academics/dashboard/summary/:
+    get:
+      operationId: academics_dashboard_summary_retrieve
+      description: Provides a summary of key indicators for an administrative dashboard.
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/academics/enrollments/:
+    get:
+      operationId: academics_enrollments_list
+      description: |-
+        ViewSet for managing Student Enrollments in SchoolClasses.
+        Allows creation, update (status), listing, and retrieval.
+      parameters:
+      - in: query
+        name: enrollment_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: enrollment_date__gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: enrollment_date__lte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: school_class
+        schema:
+          type: integer
+      - in: query
+        name: school_class__grade_level
+        schema:
+          type: integer
+      - in: query
+        name: school_class__grade_level__name
+        schema:
+          type: string
+      - in: query
+        name: school_class__grade_level__name__icontains
+        schema:
+          type: string
+      - in: query
+        name: school_class__school_year
+        schema:
+          type: integer
+      - in: query
+        name: school_class__school_year__year
+        schema:
+          type: integer
+      - in: query
+        name: school_class__school_year__year__gte
+        schema:
+          type: integer
+      - in: query
+        name: school_class__school_year__year__lte
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - COMPLETED
+          - DROPPED_OUT
+          - TRANSFERRED_OUT
+        description: |-
+          Status atual da matrícula do aluno na turma.
+
+          * `ACTIVE` - Ativa
+          * `COMPLETED` - Concluída
+          * `TRANSFERRED_OUT` - Transferido (Saída)
+          * `DROPPED_OUT` - Abandono/Evasão
+      - in: query
+        name: student
+        schema:
+          type: integer
+          title: User account
+      - in: query
+        name: student__user__username
+        schema:
+          type: string
+      - in: query
+        name: student__user__username__icontains
+        schema:
+          type: string
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Enrollment'
+          description: ''
+    post:
+      operationId: academics_enrollments_create
+      description: |-
+        ViewSet for managing Student Enrollments in SchoolClasses.
+        Allows creation, update (status), listing, and retrieval.
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Enrollment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Enrollment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Enrollment'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enrollment'
+          description: ''
+  /api/academics/enrollments/{id}/:
+    get:
+      operationId: academics_enrollments_retrieve
+      description: |-
+        ViewSet for managing Student Enrollments in SchoolClasses.
+        Allows creation, update (status), listing, and retrieval.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Enrollment.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enrollment'
+          description: ''
+    patch:
+      operationId: academics_enrollments_partial_update
+      description: |-
+        ViewSet for managing Student Enrollments in SchoolClasses.
+        Allows creation, update (status), listing, and retrieval.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Enrollment.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEnrollment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEnrollment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEnrollment'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enrollment'
+          description: ''
+    delete:
+      operationId: academics_enrollments_destroy
+      description: |-
+        ViewSet for managing Student Enrollments in SchoolClasses.
+        Allows creation, update (status), listing, and retrieval.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Enrollment.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/academics/my-data/attendance/:
+    get:
+      operationId: academics_my_data_attendance_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attendance'
+          description: ''
+  /api/academics/my-data/attendance/{id}/:
+    get:
+      operationId: academics_my_data_attendance_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Attendance Record.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attendance'
+          description: ''
+  /api/academics/my-data/events/:
+    get:
+      operationId: academics_my_data_events_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchoolEvent'
+          description: ''
+  /api/academics/my-data/events/{id}/:
+    get:
+      operationId: academics_my_data_events_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Event.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolEvent'
+          description: ''
+  /api/academics/my-data/grades/:
+    get:
+      operationId: academics_my_data_grades_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Grade'
+          description: ''
+  /api/academics/my-data/grades/{id}/:
+    get:
+      operationId: academics_my_data_grades_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grade.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grade'
+          description: ''
+  /api/academics/my-data/materials/:
+    get:
+      operationId: academics_my_data_materials_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DidacticMaterial'
+          description: ''
+  /api/academics/my-data/materials/{id}/:
+    get:
+      operationId: academics_my_data_materials_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Didactic Material.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DidacticMaterial'
+          description: ''
+  /api/academics/reports/enrollment-list/csv/:
+    get:
+      operationId: academics_reports_enrollment_list_csv_list
+      description: |-
+        API View to export a list of enrollments to a CSV file.
+        Supports filtering by school_year_id, grade_level_id, school_class_id, status, and student_id.
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EnrollmentReport'
+          description: ''
+  /api/academics/school-years/:
+    get:
+      operationId: academics_school_years_list
+      description: |-
+        ViewSet for managing SchoolYears.
+        Includes a custom action for batch re-enrollment of students.
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchoolYear'
+          description: ''
+    post:
+      operationId: academics_school_years_create
+      description: |-
+        ViewSet for managing SchoolYears.
+        Includes a custom action for batch re-enrollment of students.
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolYear'
+          description: ''
+  /api/academics/school-years/{id}/:
+    get:
+      operationId: academics_school_years_retrieve
+      description: |-
+        ViewSet for managing SchoolYears.
+        Includes a custom action for batch re-enrollment of students.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Year.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolYear'
+          description: ''
+    put:
+      operationId: academics_school_years_update
+      description: |-
+        ViewSet for managing SchoolYears.
+        Includes a custom action for batch re-enrollment of students.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Year.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolYear'
+          description: ''
+    patch:
+      operationId: academics_school_years_partial_update
+      description: |-
+        ViewSet for managing SchoolYears.
+        Includes a custom action for batch re-enrollment of students.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Year.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSchoolYear'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSchoolYear'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSchoolYear'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolYear'
+          description: ''
+    delete:
+      operationId: academics_school_years_destroy
+      description: |-
+        ViewSet for managing SchoolYears.
+        Includes a custom action for batch re-enrollment of students.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Year.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/academics/school-years/{id}/batch-reenroll/:
+    post:
+      operationId: academics_school_years_batch_reenroll_create
+      description: |-
+        Performs batch re-enrollment of students from this school year (source, identified by pk)
+        to a new target school year.
+
+        Expects 'target_school_year_id' in the request data, which is the ID of the SchoolYear
+        to which students will be re-enrolled.
+
+        The process involves:
+        - Identifying students with 'ACTIVE' or 'COMPLETED' enrollments in the source school year.
+        - Determining their next grade level.
+        - Finding a suitable SchoolClass in the target school year for that next grade.
+          (Note: Currently, it picks the first available class. Automatic class creation is not implemented.)
+        - Creating a new 'ACTIVE' Enrollment for the student in the target class/year.
+        - Updating the old 'ACTIVE' enrollment to 'COMPLETED'.
+
+        Returns a summary of the operation including counts of processed,
+        successfully re-enrolled, and skipped students with reasons.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Year.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SchoolYear'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolYear'
+          description: ''
+  /api/academics/teacher/attendance/:
+    get:
+      operationId: academics_teacher_attendance_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attendance'
+          description: ''
+    post:
+      operationId: academics_teacher_attendance_create
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceWrite'
+          description: ''
+  /api/academics/teacher/attendance/{id}/:
+    get:
+      operationId: academics_teacher_attendance_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Attendance Record.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attendance'
+          description: ''
+    put:
+      operationId: academics_teacher_attendance_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Attendance Record.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceWrite'
+          description: ''
+    patch:
+      operationId: academics_teacher_attendance_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Attendance Record.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAttendanceWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAttendanceWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAttendanceWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceWrite'
+          description: ''
+    delete:
+      operationId: academics_teacher_attendance_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Attendance Record.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/academics/teacher/events/:
+    get:
+      operationId: academics_teacher_events_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SchoolEvent'
+          description: ''
+    post:
+      operationId: academics_teacher_events_create
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolEventWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SchoolEventWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SchoolEventWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolEventWrite'
+          description: ''
+  /api/academics/teacher/events/{id}/:
+    get:
+      operationId: academics_teacher_events_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Event.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolEvent'
+          description: ''
+    put:
+      operationId: academics_teacher_events_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Event.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolEventWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SchoolEventWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SchoolEventWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolEventWrite'
+          description: ''
+    patch:
+      operationId: academics_teacher_events_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Event.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSchoolEventWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSchoolEventWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSchoolEventWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolEventWrite'
+          description: ''
+    delete:
+      operationId: academics_teacher_events_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this School Event.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/academics/teacher/grades/:
+    get:
+      operationId: academics_teacher_grades_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Grade'
+          description: ''
+    post:
+      operationId: academics_teacher_grades_create
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GradeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GradeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeWrite'
+          description: ''
+  /api/academics/teacher/grades/{id}/:
+    get:
+      operationId: academics_teacher_grades_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grade.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grade'
+          description: ''
+    put:
+      operationId: academics_teacher_grades_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grade.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GradeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GradeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeWrite'
+          description: ''
+    patch:
+      operationId: academics_teacher_grades_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grade.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGradeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGradeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGradeWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeWrite'
+          description: ''
+    delete:
+      operationId: academics_teacher_grades_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Grade.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/academics/teacher/materials/:
+    get:
+      operationId: academics_teacher_materials_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DidacticMaterial'
+          description: ''
+    post:
+      operationId: academics_teacher_materials_create
+      tags:
+      - academics
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DidacticMaterialWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DidacticMaterialWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DidacticMaterialWrite'
+          description: ''
+  /api/academics/teacher/materials/{id}/:
+    get:
+      operationId: academics_teacher_materials_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Didactic Material.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DidacticMaterial'
+          description: ''
+    put:
+      operationId: academics_teacher_materials_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Didactic Material.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DidacticMaterialWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DidacticMaterialWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DidacticMaterialWrite'
+          description: ''
+    patch:
+      operationId: academics_teacher_materials_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Didactic Material.
+        required: true
+      tags:
+      - academics
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDidacticMaterialWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDidacticMaterialWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DidacticMaterialWrite'
+          description: ''
+    delete:
+      operationId: academics_teacher_materials_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Didactic Material.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/academics/teacher/my-assignments/:
+    get:
+      operationId: academics_teacher_my_assignments_list
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeacherAssignment'
+          description: ''
+  /api/academics/teacher/my-assignments/{id}/:
+    get:
+      operationId: academics_teacher_my_assignments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Teacher Assignment.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherAssignment'
+          description: ''
+  /api/academics/teacher/my-assignments/{id}/students-for-grading/:
+    get:
+      operationId: academics_teacher_my_assignments_students_for_grading_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Teacher Assignment.
+        required: true
+      tags:
+      - academics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherAssignment'
+          description: ''
+  /api/accounts/admin/users/:
+    get:
+      operationId: accounts_admin_users_list
+      description: |-
+        ViewSet for managing Users by Direção/Admin.
+        Allows CRUD operations on User accounts, with specific field handling.
+      parameters:
+      - in: query
+        name: email
+        schema:
+          type: string
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - in: query
+        name: user_type
+        schema:
+          type: string
+          enum:
+          - ADMIN
+          - PARENT
+          - STAFF
+          - STUDENT
+          - TEACHER
+        description: |-
+          Designates the role of the user in the system.
+
+          * `PARENT` - Parent
+          * `STUDENT` - Student
+          * `TEACHER` - Teacher
+          * `STAFF` - Staff
+          * `ADMIN` - Admin
+      - in: query
+        name: username
+        schema:
+          type: string
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserManagement'
+          description: ''
+    post:
+      operationId: accounts_admin_users_create
+      description: |-
+        ViewSet for managing Users by Direção/Admin.
+        Allows CRUD operations on User accounts, with specific field handling.
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserManagement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserManagement'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserManagement'
+          description: ''
+  /api/accounts/admin/users-email-management/:
+    get:
+      operationId: accounts_admin_users_email_management_list
+      description: |-
+        ViewSet for managing user emails.
+        Allows listing, retrieving, and updating user emails.
+        Filtering by user_type is supported.
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserEmail'
+          description: ''
+  /api/accounts/admin/users-email-management/{id}/:
+    get:
+      operationId: accounts_admin_users_email_management_retrieve
+      description: |-
+        ViewSet for managing user emails.
+        Allows listing, retrieving, and updating user emails.
+        Filtering by user_type is supported.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEmail'
+          description: ''
+    put:
+      operationId: accounts_admin_users_email_management_update
+      description: |-
+        ViewSet for managing user emails.
+        Allows listing, retrieving, and updating user emails.
+        Filtering by user_type is supported.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserEmail'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEmail'
+          description: ''
+    patch:
+      operationId: accounts_admin_users_email_management_partial_update
+      description: |-
+        ViewSet for managing user emails.
+        Allows listing, retrieving, and updating user emails.
+        Filtering by user_type is supported.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserEmail'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEmail'
+          description: ''
+  /api/accounts/admin/users/{id}/:
+    get:
+      operationId: accounts_admin_users_retrieve
+      description: |-
+        ViewSet for managing Users by Direção/Admin.
+        Allows CRUD operations on User accounts, with specific field handling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserManagement'
+          description: ''
+    put:
+      operationId: accounts_admin_users_update
+      description: |-
+        ViewSet for managing Users by Direção/Admin.
+        Allows CRUD operations on User accounts, with specific field handling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserManagement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserManagement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserManagement'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserManagement'
+          description: ''
+    patch:
+      operationId: accounts_admin_users_partial_update
+      description: |-
+        ViewSet for managing Users by Direção/Admin.
+        Allows CRUD operations on User accounts, with specific field handling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserManagement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserManagement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserManagement'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserManagement'
+          description: ''
+    delete:
+      operationId: accounts_admin_users_destroy
+      description: |-
+        ViewSet for managing Users by Direção/Admin.
+        Allows CRUD operations on User accounts, with specific field handling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/accounts/users/:
+    get:
+      operationId: accounts_users_list
+      description: ViewSet para visualização e edição de instâncias de User.
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+    post:
+      operationId: accounts_users_create
+      description: ViewSet para visualização e edição de instâncias de User.
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/accounts/users/{id}/:
+    get:
+      operationId: accounts_users_retrieve
+      description: ViewSet para visualização e edição de instâncias de User.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: accounts_users_update
+      description: ViewSet para visualização e edição de instâncias de User.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: accounts_users_partial_update
+      description: ViewSet para visualização e edição de instâncias de User.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: accounts_users_destroy
+      description: ViewSet para visualização e edição de instâncias de User.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/auditing/logs/:
+    get:
+      operationId: auditing_logs_list
+      parameters:
+      - in: query
+        name: action_type
+        schema:
+          type: string
+          enum:
+          - CREATED
+          - DELETED
+          - EXPORTED
+          - LOGIN_FAILED
+          - LOGIN_SUCCESS
+          - LOGOUT
+          - UPDATED
+          - VIEWED
+        description: |-
+          * `LOGIN_SUCCESS` - Login Successful
+          * `LOGIN_FAILED` - Login Failed
+          * `LOGOUT` - Logout
+          * `CREATED` - Object Created
+          * `UPDATED` - Object Updated
+          * `DELETED` - Object Deleted
+          * `VIEWED` - Object/View Accessed
+          * `EXPORTED` - Data Exported
+      - in: query
+        name: action_type__in
+        schema:
+          type: array
+          items:
+            type: string
+        description: Multiple values may be separated by commas.
+        explode: false
+        style: form
+      - in: query
+        name: ip_address
+        schema:
+          type: string
+      - in: query
+        name: ip_address__startswith
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: target_content_type__app_label
+        schema:
+          type: string
+      - in: query
+        name: target_content_type__model
+        schema:
+          type: string
+      - in: query
+        name: target_object_id
+        schema:
+          type: string
+      - in: query
+        name: timestamp__date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: timestamp__day
+        schema:
+          type: number
+      - in: query
+        name: timestamp__gte
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: timestamp__lte
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: timestamp__month
+        schema:
+          type: number
+      - in: query
+        name: timestamp__range
+        schema:
+          type: array
+          items:
+            type: string
+            format: date-time
+        description: Multiple values may be separated by commas.
+        explode: false
+        style: form
+      - in: query
+        name: timestamp__year
+        schema:
+          type: number
+      - in: query
+        name: user__email
+        schema:
+          type: string
+      - in: query
+        name: user__email__icontains
+        schema:
+          type: string
+      - in: query
+        name: user__username
+        schema:
+          type: string
+      - in: query
+        name: user__username__icontains
+        schema:
+          type: string
+      tags:
+      - auditing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLog'
+          description: ''
+  /api/auditing/logs/{id}/:
+    get:
+      operationId: auditing_logs_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Audit Log.
+        required: true
+      tags:
+      - auditing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLog'
+          description: ''
+  /api/communications/threads/:
+    get:
+      operationId: communications_threads_list
+      description: |-
+        Manages message threads and their messages.
+
+        Provides functionality for:
+        - Listing threads for the current authenticated user.
+        - Creating new threads with an initial message.
+        - Retrieving details of a specific thread.
+        - Listing messages within a thread (marks messages as read for the user).
+        - Replying to an existing thread.
+        - Updating the subject of a thread.
+        - Allowing users to leave a thread.
+        - Marking individual messages as read.
+      tags:
+      - communications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MessageThreadList'
+          description: ''
+    post:
+      operationId: communications_threads_create
+      description: |-
+        Manages message threads and their messages.
+
+        Provides functionality for:
+        - Listing threads for the current authenticated user.
+        - Creating new threads with an initial message.
+        - Retrieving details of a specific thread.
+        - Listing messages within a thread (marks messages as read for the user).
+        - Replying to an existing thread.
+        - Updating the subject of a thread.
+        - Allowing users to leave a thread.
+        - Marking individual messages as read.
+      tags:
+      - communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageThreadDetail'
+          description: ''
+  /api/communications/threads/{id}/:
+    get:
+      operationId: communications_threads_retrieve
+      description: |-
+        Manages message threads and their messages.
+
+        Provides functionality for:
+        - Listing threads for the current authenticated user.
+        - Creating new threads with an initial message.
+        - Retrieving details of a specific thread.
+        - Listing messages within a thread (marks messages as read for the user).
+        - Replying to an existing thread.
+        - Updating the subject of a thread.
+        - Allowing users to leave a thread.
+        - Marking individual messages as read.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageThreadDetail'
+          description: ''
+    put:
+      operationId: communications_threads_update
+      description: |-
+        Manages message threads and their messages.
+
+        Provides functionality for:
+        - Listing threads for the current authenticated user.
+        - Creating new threads with an initial message.
+        - Retrieving details of a specific thread.
+        - Listing messages within a thread (marks messages as read for the user).
+        - Replying to an existing thread.
+        - Updating the subject of a thread.
+        - Allowing users to leave a thread.
+        - Marking individual messages as read.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageThreadDetail'
+          description: ''
+    patch:
+      operationId: communications_threads_partial_update
+      description: |-
+        Partially updates a message thread.
+        Currently, only allows updating the 'subject' of the thread.
+        The user must be a participant.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMessageThreadDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMessageThreadDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMessageThreadDetail'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageThreadDetail'
+          description: ''
+    delete:
+      operationId: communications_threads_destroy
+      description: |-
+        Manages message threads and their messages.
+
+        Provides functionality for:
+        - Listing threads for the current authenticated user.
+        - Creating new threads with an initial message.
+        - Retrieving details of a specific thread.
+        - Listing messages within a thread (marks messages as read for the user).
+        - Replying to an existing thread.
+        - Updating the subject of a thread.
+        - Allowing users to leave a thread.
+        - Marking individual messages as read.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/communications/threads/{id}/leave-thread/:
+    post:
+      operationId: communications_threads_leave_thread_create
+      description: |-
+        Allows an authenticated user to remove themselves from a thread's participant list.
+        If the user is the last participant, the entire thread is deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageThreadDetail'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageThreadDetail'
+          description: ''
+  /api/communications/threads/{id}/mark-message-read/:
+    post:
+      operationId: communications_threads_mark_message_read_create
+      description: |-
+        Marks a specific message within a thread as read by the current user.
+        Expects 'message_id' in the request data payload.
+        The user must be a participant in the thread.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Message'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/communications/threads/{id}/messages/:
+    get:
+      operationId: communications_threads_messages_retrieve
+      description: |-
+        Retrieves the list of messages for a specific thread (by thread ID in URL).
+        The authenticated user must be a participant.
+        Accessing messages via this endpoint will mark them as read by the current user.
+        Messages are ordered by timestamp (oldest first).
+        Supports pagination.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/communications/threads/{id}/reply/:
+    post:
+      operationId: communications_threads_reply_create
+      description: |-
+        Posts a reply (a new message) to the specified message thread (by thread ID in URL).
+        The authenticated user must be a participant of the thread.
+
+        Payload requires:
+        - `content`: The text content of the reply message.
+
+        Returns the details of the created message.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Message Thread.
+        required: true
+      tags:
+      - communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Message'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/communications/threads/create-thread/:
+    post:
+      operationId: communications_threads_create_thread_create
+      description: |-
+        Creates a new message thread and posts the initial message.
+
+        Payload requires:
+        - `recipients`: A list of user IDs for other participants.
+        - `content`: The text content of the first message.
+        - `subject` (optional): Subject for the thread.
+
+        The authenticated user making the request is automatically added as a participant and sender.
+        Returns the details of the newly created thread.
+      tags:
+      - communications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageThreadCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MessageThreadCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageThreadCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageThreadCreate'
+          description: ''
+  /api/financials/management/fees/:
+    get:
+      operationId: financials_management_fees_list
+      parameters:
+      - in: query
+        name: due_date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: due_date_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: status
+        schema:
+          type: string
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Fee'
+          description: ''
+    post:
+      operationId: financials_management_fees_create
+      tags:
+      - financials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FeeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FeeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeeWrite'
+          description: ''
+  /api/financials/management/fees/{id}/:
+    get:
+      operationId: financials_management_fees_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Fee.
+        required: true
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fee'
+          description: ''
+    put:
+      operationId: financials_management_fees_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Fee.
+        required: true
+      tags:
+      - financials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FeeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FeeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeeWrite'
+          description: ''
+    patch:
+      operationId: financials_management_fees_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Fee.
+        required: true
+      tags:
+      - financials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFeeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFeeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFeeWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeeWrite'
+          description: ''
+    delete:
+      operationId: financials_management_fees_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Fee.
+        required: true
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/financials/management/fees/{id}/regenerate-slip/:
+    get:
+      operationId: financials_management_fees_regenerate_slip_retrieve
+      description: |-
+        Retorna os dados de uma taxa específica para permitir a regeneração de um boleto.
+        A lógica de geração do boleto em si seria externa ou em outra função.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Fee.
+        required: true
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fee'
+          description: ''
+  /api/financials/management/fees/overdue-report/:
+    get:
+      operationId: financials_management_fees_overdue_report_retrieve
+      description: Retorna um relatório paginado de taxas vencidas e não totalmente
+        pagas.
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fee'
+          description: ''
+  /api/financials/management/payments/:
+    get:
+      operationId: financials_management_payments_list
+      parameters:
+      - in: query
+        name: payment_date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: payment_date_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: payment_method
+        schema:
+          type: string
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+    post:
+      operationId: financials_management_payments_create
+      tags:
+      - financials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentWrite'
+          description: ''
+  /api/financials/management/payments/{id}/:
+    get:
+      operationId: financials_management_payments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Payment.
+        required: true
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    put:
+      operationId: financials_management_payments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Payment.
+        required: true
+      tags:
+      - financials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentWrite'
+          description: ''
+    patch:
+      operationId: financials_management_payments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Payment.
+        required: true
+      tags:
+      - financials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentWrite'
+          description: ''
+    delete:
+      operationId: financials_management_payments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Payment.
+        required: true
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/financials/my-fees/:
+    get:
+      operationId: financials_my_fees_list
+      parameters:
+      - in: query
+        name: due_date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: due_date_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: status
+        schema:
+          type: string
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Fee'
+          description: ''
+  /api/financials/my-fees/{id}/:
+    get:
+      operationId: financials_my_fees_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Fee.
+        required: true
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fee'
+          description: ''
+  /api/financials/my-payments/:
+    get:
+      operationId: financials_my_payments_list
+      parameters:
+      - in: query
+        name: payment_date_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: payment_date_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: payment_method
+        schema:
+          type: string
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/financials/my-payments/{id}/:
+    get:
+      operationId: financials_my_payments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Payment.
+        required: true
+      tags:
+      - financials
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/students/admin/pending-registrations/:
+    get:
+      operationId: students_admin_pending_registrations_list
+      description: |-
+        ViewSet para listar e recuperar registros de alunos pendentes de validação.
+        Permite que administradores aprovem ou rejeitem esses registros.
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Student'
+          description: ''
+  /api/students/admin/pending-registrations/{user}/:
+    get:
+      operationId: students_admin_pending_registrations_retrieve
+      description: |-
+        ViewSet para listar e recuperar registros de alunos pendentes de validação.
+        Permite que administradores aprovem ou rejeitem esses registros.
+      parameters:
+      - in: path
+        name: user
+        schema:
+          type: integer
+          title: User account
+        description: A unique value identifying this Student.
+        required: true
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+  /api/students/admin/pending-registrations/{user}/approve-registration/:
+    post:
+      operationId: students_admin_pending_registrations_approve_registration_create
+      description: |-
+        Aprova o registro de um aluno.
+        Muda o status para 'ACTIVE' e pode definir a data de matrícula.
+      parameters:
+      - in: path
+        name: user
+        schema:
+          type: integer
+          title: User account
+        description: A unique value identifying this Student.
+        required: true
+      tags:
+      - students
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Student'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Student'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+  /api/students/admin/pending-registrations/{user}/reject-registration/:
+    post:
+      operationId: students_admin_pending_registrations_reject_registration_create
+      description: |-
+        Rejeita o registro de um aluno.
+        Muda o status para 'REJECTED' e registra o motivo.
+      parameters:
+      - in: path
+        name: user
+        schema:
+          type: integer
+          title: User account
+        description: A unique value identifying this Student.
+        required: true
+      tags:
+      - students
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Student'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Student'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+  /api/students/admin/student-document-management/:
+    get:
+      operationId: students_admin_student_document_management_list
+      description: |-
+        ViewSet for Secretaria to manage student documents, specifically for validation.
+        Allows listing, retrieving, and updating (PATCH) document status and notes.
+      parameters:
+      - in: query
+        name: document_type
+        schema:
+          type: string
+          enum:
+          - CARTEIRA_VACINACAO
+          - COMP_RESIDENCIA_RESP
+          - CPF_ALUNO
+          - CPF_RESPONSAVEL
+          - DECLARACAO_QUITACAO_ESCOLA_ANT
+          - FOTO_3X4
+          - HIST_ESCOLAR
+          - LAUDO_MEDICO
+          - OUTRO
+          - RG_ALUNO
+          - RG_RESPONSAVEL
+        description: |-
+          Tipo do documento.
+
+          * `RG_ALUNO` - RG do Aluno
+          * `CPF_ALUNO` - CPF do Aluno
+          * `COMP_RESIDENCIA_RESP` - Comprovante de Residência do Responsável
+          * `CARTEIRA_VACINACAO` - Carteira de Vacinação
+          * `HIST_ESCOLAR` - Histórico Escolar da Escola Anterior
+          * `LAUDO_MEDICO` - Laudo Médico (para necessidades especiais)
+          * `FOTO_3X4` - Foto 3x4 Recente
+          * `RG_RESPONSAVEL` - RG do Responsável
+          * `CPF_RESPONSAVEL` - CPF do Responsável
+          * `DECLARACAO_QUITACAO_ESCOLA_ANT` - Declaração de Quitação da Escola Anterior
+          * `OUTRO` - Outro Documento
+      - in: query
+        name: student
+        schema:
+          type: integer
+          title: User account
+      - in: query
+        name: validation_status
+        schema:
+          type: string
+          enum:
+          - APPROVED
+          - PENDING
+          - REJECTED
+        description: |-
+          Status da validação do documento pela secretaria.
+
+          * `PENDING` - Pendente de Validação
+          * `APPROVED` - Aprovado
+          * `REJECTED` - Rejeitado
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentDocument'
+          description: ''
+  /api/students/admin/student-document-management/{id}/:
+    get:
+      operationId: students_admin_student_document_management_retrieve
+      description: |-
+        ViewSet for Secretaria to manage student documents, specifically for validation.
+        Allows listing, retrieving, and updating (PATCH) document status and notes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Student Document.
+        required: true
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentDocument'
+          description: ''
+    patch:
+      operationId: students_admin_student_document_management_partial_update
+      description: |-
+        ViewSet for Secretaria to manage student documents, specifically for validation.
+        Allows listing, retrieving, and updating (PATCH) document status and notes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Student Document.
+        required: true
+      tags:
+      - students
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedStudentDocument'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStudentDocument'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedStudentDocument'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentDocument'
+          description: ''
+  /api/students/admin/student-management/:
+    get:
+      operationId: students_admin_student_management_list
+      description: |-
+        ViewSet for Secretaria to manage student lifecycle and data.
+        Allows listing, retrieving, and updating (PATCH) student records.
+      parameters:
+      - in: query
+        name: grade_level_pretended
+        schema:
+          type: integer
+      - in: query
+        name: registration_status
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - GRADUATED
+          - INACTIVE
+          - PENDING_VALIDATION
+          - PRE_REGISTERED
+          - REJECTED
+          - TRANSFERRED
+        description: |-
+          Status atual do cadastro/matrícula do aluno.
+
+          * `PRE_REGISTERED` - Pré-Cadastrado
+          * `PENDING_VALIDATION` - Pendente de Validação
+          * `ACTIVE` - Ativo
+          * `INACTIVE` - Inativo
+          * `TRANSFERRED` - Transferido
+          * `GRADUATED` - Graduado
+          * `REJECTED` - Rejeitado
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Student'
+          description: ''
+  /api/students/admin/student-management/{user}/:
+    get:
+      operationId: students_admin_student_management_retrieve
+      description: |-
+        ViewSet for Secretaria to manage student lifecycle and data.
+        Allows listing, retrieving, and updating (PATCH) student records.
+      parameters:
+      - in: path
+        name: user
+        schema:
+          type: integer
+          title: User account
+        description: A unique value identifying this Student.
+        required: true
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+    patch:
+      operationId: students_admin_student_management_partial_update
+      description: |-
+        ViewSet for Secretaria to manage student lifecycle and data.
+        Allows listing, retrieving, and updating (PATCH) student records.
+      parameters:
+      - in: path
+        name: user
+        schema:
+          type: integer
+          title: User account
+        description: A unique value identifying this Student.
+        required: true
+      tags:
+      - students
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedStudent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStudent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedStudent'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+          description: ''
+  /api/students/pre-register/:
+    post:
+      operationId: students_pre_register_create
+      description: |-
+        API View para o processo de pré-cadastro de alunos.
+        Esta view será acessível publicamente.
+        Espera um payload multipart/form-data com as seguintes chaves principais:
+        - "parent_user_data" (JSON string ou campos de formulário prefixados): Dados para User do responsável.
+        - "parent_profile_data" (JSON string ou campos de formulário prefixados): Dados para UserProfile do responsável.
+        - "parent_relationship_type": Tipo de relação do responsável.
+        - "student_user_data" (JSON string ou campos de formulário prefixados): Dados para User do aluno.
+        - "student_profile_data" (JSON string ou campos de formulário prefixados): Dados para UserProfile do aluno.
+        - "student_data" (JSON string ou campos de formulário prefixados): Dados para Student.
+        - "document_types" (lista): Lista dos tipos de documentos enviados.
+        - "document_files" (lista de arquivos): Lista dos arquivos de documentos.
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/students/reports/student-list/csv/:
+    get:
+      operationId: students_reports_student_list_csv_list
+      description: |-
+        API View to export a list of students to a CSV file.
+        Supports filtering by grade_level_id, registration_status, and school_year_id (for active enrollment).
+      tags:
+      - students
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentReport'
+          description: ''
+  /api/token/:
+    post:
+      operationId: token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/token/blacklist/:
+    post:
+      operationId: token_blacklist_create
+      description: |-
+        Takes a token and blacklists it. Must be used with the
+        `rest_framework_simplejwt.token_blacklist` app installed.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklist'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklist'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklist'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenBlacklist'
+          description: ''
+  /api/token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+components:
+  schemas:
+    ActionTypeEnum:
+      enum:
+      - LOGIN_SUCCESS
+      - LOGIN_FAILED
+      - LOGOUT
+      - CREATED
+      - UPDATED
+      - DELETED
+      - VIEWED
+      - EXPORTED
+      type: string
+      description: |-
+        * `LOGIN_SUCCESS` - Login Successful
+        * `LOGIN_FAILED` - Login Failed
+        * `LOGOUT` - Logout
+        * `CREATED` - Object Created
+        * `UPDATED` - Object Updated
+        * `DELETED` - Object Deleted
+        * `VIEWED` - Object/View Accessed
+        * `EXPORTED` - Data Exported
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        content:
+          type: string
+        publication_date:
+          type: string
+          format: date-time
+          readOnly: true
+        author:
+          type: integer
+          readOnly: true
+          nullable: true
+        author_details:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        target_user_types:
+          nullable: true
+          description: Optional. List of user type strings (e.g., ["PARENT", "STUDENT"])
+            to target.
+        target_grade_levels:
+          type: array
+          items:
+            type: integer
+          description: Optional. List of Grade Level IDs to target with this announcement.
+        target_grade_levels_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/GradeLevel'
+          readOnly: true
+        target_school_classes:
+          type: array
+          items:
+            type: integer
+          description: Optional. List of School Class IDs to target with this announcement.
+        target_school_classes_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/SchoolClassList'
+          readOnly: true
+        is_school_wide:
+          type: boolean
+          title: Is school-wide?
+          description: Marque se o comunicado é para toda a escola (ignora outros
+            direcionamentos específicos se marcado).
+        expiry_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Data após a qual o comunicado não será mais exibido proeminentemente.
+      required:
+      - author
+      - author_details
+      - content
+      - id
+      - publication_date
+      - target_grade_levels_details
+      - target_school_classes_details
+      - title
+    Attendance:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        enrollment:
+          type: integer
+        student_name:
+          type: string
+          readOnly: true
+        subject:
+          type: integer
+        subject_name:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+          description: Data da aula para a qual a frequência está sendo registrada.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status2c9Enum'
+          description: |-
+            Status de presença do aluno na aula.
+
+            * `PRESENT` - Presente
+            * `ABSENT` - Ausente
+            * `JUSTIFIED_ABSENCE` - Ausência Justificada
+        status_display:
+          type: string
+          readOnly: true
+        notes:
+          type: string
+          nullable: true
+          description: Observações, como a justificativa para uma ausência.
+      required:
+      - enrollment
+      - id
+      - status
+      - status_display
+      - student_name
+      - subject
+      - subject_name
+    AttendanceWrite:
+      type: object
+      properties:
+        enrollment:
+          type: integer
+        subject:
+          type: integer
+        date:
+          type: string
+          format: date
+          description: Data da aula para a qual a frequência está sendo registrada.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status2c9Enum'
+          description: |-
+            Status de presença do aluno na aula.
+
+            * `PRESENT` - Presente
+            * `ABSENT` - Ausente
+            * `JUSTIFIED_ABSENCE` - Ausência Justificada
+        notes:
+          type: string
+          nullable: true
+          description: Observações, como a justificativa para uma ausência.
+      required:
+      - enrollment
+      - status
+      - subject
+    AuditLog:
+      type: object
+      description: |-
+        Serializer for AuditLog entries, providing detailed read-only information.
+        Used for displaying audit logs. All fields are read-only as logs are immutable.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/AuditLogUser'
+          readOnly: true
+          description: The user who performed the action, if authenticated and available.
+        action_type:
+          allOf:
+          - $ref: '#/components/schemas/ActionTypeEnum'
+          readOnly: true
+        action_type_display:
+          type: string
+          readOnly: true
+          description: Human-readable description of the action performed.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Date and time when the action occurred.
+        ip_address:
+          type: string
+          readOnly: true
+          description: IP address from which the action was initiated, if available.
+        target_content_type:
+          allOf:
+          - $ref: '#/components/schemas/ContentType'
+          readOnly: true
+          description: The content type (model) of the object that was acted upon,
+            if any.
+        target_object_id:
+          type: string
+          readOnly: true
+          description: Primary key of the target object, if any.
+        target_object_repr:
+          type: string
+          readOnly: true
+          description: String representation of the target object at the time of logging,
+            if any.
+        details:
+          readOnly: true
+          description: A JSON object containing additional, action-specific details
+            about the logged event.
+      required:
+      - action_type
+      - action_type_display
+      - details
+      - id
+      - ip_address
+      - target_content_type
+      - target_object_id
+      - target_object_repr
+      - timestamp
+      - user
+    AuditLogUser:
+      type: object
+      description: Simplified User serializer for audit log display.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+      required:
+      - id
+      - username
+    ContentType:
+      type: object
+      description: Serializer for ContentType model, showing app label and model name.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        app_label:
+          type: string
+          maxLength: 100
+        model:
+          type: string
+          title: Python model class name
+          maxLength: 100
+      required:
+      - app_label
+      - id
+      - model
+    DidacticMaterial:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          description: Título do material didático.
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          description: Breve descrição do material.
+        file:
+          type: string
+          format: uri
+          description: Arquivo do material didático (PDF, DOCX, PPTX, etc.).
+        file_url:
+          type: string
+          readOnly: true
+        subject:
+          type: integer
+        subject_name:
+          type: string
+          readOnly: true
+        school_class:
+          type: integer
+          nullable: true
+          description: Associe a uma turma específica, ou deixe em branco se for geral
+            para a disciplina/série.
+        school_class_name:
+          type: string
+          readOnly: true
+          nullable: true
+        uploader:
+          type: integer
+          nullable: true
+          description: Usuário que fez o upload do material (Professor, Secretaria,
+            Admin).
+        uploader_info:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        upload_date:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Data e hora em que o material foi enviado.
+      required:
+      - file
+      - file_url
+      - id
+      - school_class_name
+      - subject
+      - subject_name
+      - title
+      - upload_date
+      - uploader_info
+    DidacticMaterialWrite:
+      type: object
+      description: Serializer para criação e atualização de Materiais Didáticos (DidacticMaterial).
+      properties:
+        title:
+          type: string
+          description: Título do material didático.
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          description: Breve descrição do material.
+        file:
+          type: string
+          format: uri
+          description: Arquivo do material didático (PDF, DOCX, PPTX, etc.).
+        subject:
+          type: integer
+        school_class:
+          type: integer
+          nullable: true
+      required:
+      - file
+      - subject
+      - title
+    DocumentTypeEnum:
+      enum:
+      - RG_ALUNO
+      - CPF_ALUNO
+      - COMP_RESIDENCIA_RESP
+      - CARTEIRA_VACINACAO
+      - HIST_ESCOLAR
+      - LAUDO_MEDICO
+      - FOTO_3X4
+      - RG_RESPONSAVEL
+      - CPF_RESPONSAVEL
+      - DECLARACAO_QUITACAO_ESCOLA_ANT
+      - OUTRO
+      type: string
+      description: |-
+        * `RG_ALUNO` - RG do Aluno
+        * `CPF_ALUNO` - CPF do Aluno
+        * `COMP_RESIDENCIA_RESP` - Comprovante de Residência do Responsável
+        * `CARTEIRA_VACINACAO` - Carteira de Vacinação
+        * `HIST_ESCOLAR` - Histórico Escolar da Escola Anterior
+        * `LAUDO_MEDICO` - Laudo Médico (para necessidades especiais)
+        * `FOTO_3X4` - Foto 3x4 Recente
+        * `RG_RESPONSAVEL` - RG do Responsável
+        * `CPF_RESPONSAVEL` - CPF do Responsável
+        * `DECLARACAO_QUITACAO_ESCOLA_ANT` - Declaração de Quitação da Escola Anterior
+        * `OUTRO` - Outro Documento
+    Enrollment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: User account
+          writeOnly: true
+          description: ID of the student to be enrolled.
+        student_details:
+          allOf:
+          - $ref: '#/components/schemas/StudentSimple'
+          readOnly: true
+        school_class:
+          type: integer
+          writeOnly: true
+          description: ID of the school class to enroll the student into.
+        school_class_details:
+          allOf:
+          - $ref: '#/components/schemas/SchoolClassList'
+          readOnly: true
+        enrollment_date:
+          type: string
+          format: date
+          readOnly: true
+          description: Data em que a matrícula foi efetivada nesta turma.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EnrollmentStatusEnum'
+          default: ACTIVE
+          description: |-
+            Status of the enrollment. Defaults to 'Active' upon creation. Can be updated to 'Completed', 'Transferred Out', or 'Dropped Out'.
+
+            * `ACTIVE` - Ativa
+            * `COMPLETED` - Concluída
+            * `TRANSFERRED_OUT` - Transferido (Saída)
+            * `DROPPED_OUT` - Abandono/Evasão
+        status_display:
+          type: string
+          readOnly: true
+      required:
+      - enrollment_date
+      - id
+      - school_class
+      - school_class_details
+      - status_display
+      - student
+      - student_details
+    EnrollmentReport:
+      type: object
+      properties:
+        enrollment_id:
+          type: integer
+          readOnly: true
+        student_name:
+          type: string
+          readOnly: true
+        student_username:
+          type: string
+          readOnly: true
+        school_class_name:
+          type: string
+          readOnly: true
+        grade_level_name:
+          type: string
+          readOnly: true
+        school_year:
+          type: integer
+          readOnly: true
+        enrollment_status:
+          type: string
+          readOnly: true
+        enrollment_date:
+          type: string
+          format: date
+          readOnly: true
+          description: Data em que a matrícula foi efetivada nesta turma.
+      required:
+      - enrollment_date
+      - enrollment_id
+      - enrollment_status
+      - grade_level_name
+      - school_class_name
+      - school_year
+      - student_name
+      - student_username
+    EnrollmentStatusEnum:
+      enum:
+      - ACTIVE
+      - COMPLETED
+      - TRANSFERRED_OUT
+      - DROPPED_OUT
+      type: string
+      description: |-
+        * `ACTIVE` - Ativa
+        * `COMPLETED` - Concluída
+        * `TRANSFERRED_OUT` - Transferido (Saída)
+        * `DROPPED_OUT` - Abandono/Evasão
+    EventTypeEnum:
+      enum:
+      - EXAM
+      - MEETING
+      - HOLIDAY
+      - SCHOOL_ACTIVITY
+      - OTHER
+      type: string
+      description: |-
+        * `EXAM` - Prova/Avaliação
+        * `MEETING` - Reunião
+        * `HOLIDAY` - Feriado/Recesso
+        * `SCHOOL_ACTIVITY` - Atividade Escolar
+        * `OTHER` - Outro Evento
+    Fee:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: User account
+          description: Aluno ao qual esta taxa se refere.
+        student_name:
+          type: string
+          readOnly: true
+        school_year:
+          type: integer
+          description: Ano letivo da taxa.
+        school_year_str:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          description: 'Descrição da taxa (ex: Mensalidade Março/2024, Taxa de Material
+            Didático).'
+          maxLength: 255
+        due_date:
+          type: string
+          format: date
+          description: Data de vencimento.
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor original da taxa.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusE97Enum'
+          description: |-
+            Status atual da taxa.
+
+            * `PENDING` - Pendente
+            * `PAID` - Pago
+            * `OVERDUE` - Vencido
+            * `CANCELED` - Cancelado
+            * `PARTIALLY_PAID` - Parcialmente Pago
+        status_display:
+          type: string
+          readOnly: true
+        payment_gateway_id:
+          type: string
+          nullable: true
+          description: ID externo do boleto/cobrança no gateway de pagamento.
+          maxLength: 255
+        barcode:
+          type: string
+          nullable: true
+          description: Código de barras do boleto, se aplicável.
+          maxLength: 255
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações internas sobre a taxa (ex: negociações, isenções
+            parciais).'
+        discount_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor do desconto aplicado.
+        penalty_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor da multa por atraso.
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: Valor efetivamente pago.
+        payment_date:
+          type: string
+          format: date
+          nullable: true
+          description: Data em que o pagamento foi efetuado/confirmado.
+        is_overdue:
+          type: boolean
+          readOnly: true
+        total_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - description
+      - due_date
+      - id
+      - is_overdue
+      - school_year
+      - school_year_str
+      - status_display
+      - student
+      - student_name
+      - total_value
+      - updated_at
+    FeeWrite:
+      type: object
+      properties:
+        student:
+          type: integer
+          title: User account
+          description: Aluno ao qual esta taxa se refere.
+        school_year:
+          type: integer
+          description: Ano letivo da taxa.
+        description:
+          type: string
+          description: 'Descrição da taxa (ex: Mensalidade Março/2024, Taxa de Material
+            Didático).'
+          maxLength: 255
+        due_date:
+          type: string
+          format: date
+          description: Data de vencimento.
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor original da taxa.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusE97Enum'
+          description: |-
+            Status atual da taxa.
+
+            * `PENDING` - Pendente
+            * `PAID` - Pago
+            * `OVERDUE` - Vencido
+            * `CANCELED` - Cancelado
+            * `PARTIALLY_PAID` - Parcialmente Pago
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações internas sobre a taxa (ex: negociações, isenções
+            parciais).'
+        payment_gateway_id:
+          type: string
+          nullable: true
+          description: ID externo do boleto/cobrança no gateway de pagamento.
+          maxLength: 255
+        barcode:
+          type: string
+          nullable: true
+          description: Código de barras do boleto, se aplicável.
+          maxLength: 255
+        discount_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor do desconto aplicado.
+        penalty_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor da multa por atraso.
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: Valor efetivamente pago.
+        payment_date:
+          type: string
+          format: date
+          nullable: true
+          description: Data em que o pagamento foi efetuado/confirmado.
+        edit_reason:
+          type: string
+          writeOnly: true
+          title: Motivo da Edição
+      required:
+      - amount
+      - description
+      - due_date
+      - school_year
+      - student
+    Grade:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        enrollment:
+          type: integer
+        student_name:
+          type: string
+          readOnly: true
+        subject:
+          type: integer
+        subject_name:
+          type: string
+          readOnly: true
+        grading_period:
+          type: integer
+        grading_period_name:
+          type: string
+          readOnly: true
+        assessment_name:
+          type: string
+          description: 'Nome ou descrição da avaliação, ex: "Prova Bimestral 1", "Trabalho
+            em Grupo - Revolução Francesa", "Participação em Aula".'
+          maxLength: 100
+        grade_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Valor da nota obtida pelo aluno.
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+          nullable: true
+          description: 'Peso desta nota para cálculo de média ponderada (ex: 0.4 para
+            40%). Deixar em branco se não aplicável ou se a média for simples.'
+        grading_date:
+          type: string
+          format: date
+          readOnly: true
+          description: Data de lançamento ou da realização da avaliação.
+      required:
+      - assessment_name
+      - enrollment
+      - grade_value
+      - grading_date
+      - grading_period
+      - grading_period_name
+      - id
+      - student_name
+      - subject
+      - subject_name
+    GradeLevel:
+      type: object
+      description: Serializer para o modelo GradeLevel.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: 'Nome da série/nível escolar, ex: "1º Ano Ensino Fundamental".'
+          maxLength: 100
+        order_in_sequence:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: 'Ordem em que a série aparece na progressão escolar, ex: 1
+            para a primeira série, 2 para a segunda, etc.'
+      required:
+      - id
+      - name
+      - order_in_sequence
+    GradeWrite:
+      type: object
+      properties:
+        enrollment:
+          type: integer
+        subject:
+          type: integer
+        grading_period:
+          type: integer
+        assessment_name:
+          type: string
+          description: 'Nome ou descrição da avaliação, ex: "Prova Bimestral 1", "Trabalho
+            em Grupo - Revolução Francesa", "Participação em Aula".'
+          maxLength: 100
+        grade_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Valor da nota obtida pelo aluno.
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+          nullable: true
+          description: 'Peso desta nota para cálculo de média ponderada (ex: 0.4 para
+            40%). Deixar em branco se não aplicável ou se a média for simples.'
+      required:
+      - assessment_name
+      - enrollment
+      - grade_value
+      - grading_period
+      - subject
+    Message:
+      type: object
+      description: |-
+        Serializer for individual messages.
+        Sender and thread are typically set by the view logic, not direct client input here.
+        'read_by' is managed by system based on access.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        thread:
+          type: integer
+          description: ID of the thread this message belongs to. Required when replying
+            directly to a thread if not set by URL.
+        sender:
+          allOf:
+          - $ref: '#/components/schemas/MessageUser'
+          readOnly: true
+          description: The user who sent the message. Set by the system.
+        content:
+          type: string
+          description: Text content of the message.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        read_by:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageUser'
+          readOnly: true
+          description: List of users who have read this message.
+      required:
+      - content
+      - id
+      - read_by
+      - sender
+      - thread
+      - timestamp
+    MessageThreadCreate:
+      type: object
+      description: Serializer for creating a new message thread along with its initial
+        message.
+      properties:
+        recipients:
+          type: array
+          items:
+            type: integer
+            description: User ID of a recipient.
+          writeOnly: true
+          description: A list of user IDs for the recipients of the initial message.
+        content:
+          type: string
+          writeOnly: true
+          description: The content of the initial message.
+        subject:
+          type: string
+          writeOnly: true
+          description: An optional subject for the new message thread.
+          maxLength: 255
+      required:
+      - content
+      - recipients
+    MessageThreadDetail:
+      type: object
+      description: Serializer for the detailed view of a message thread, including
+        its participants.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        subject:
+          type: string
+          nullable: true
+          description: Optional subject for the conversation thread.
+          maxLength: 255
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageUser'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - participants
+      - updated_at
+    MessageThreadList:
+      type: object
+      description: Serializer for listing message threads with summary information.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        subject:
+          type: string
+          nullable: true
+          description: Optional subject for the conversation thread.
+          maxLength: 255
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageUser'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        last_message:
+          type: string
+          readOnly: true
+          description: A snippet of the last message in the thread, including sender
+            and timestamp.
+        unread_count:
+          type: string
+          readOnly: true
+          description: Number of unread messages for the current authenticated user
+            in this thread.
+        first_participant_for_subject:
+          type: string
+          readOnly: true
+          description: If the thread has no subject, this provides details of the
+            first other participant to help identify the chat (e.g., 'Chat with User
+            X').
+      required:
+      - created_at
+      - first_participant_for_subject
+      - id
+      - last_message
+      - participants
+      - unread_count
+      - updated_at
+    MessageUser:
+      type: object
+      description: Serializer for basic user representation in messaging.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        full_name:
+          type: string
+          readOnly: true
+          description: Full name of the user.
+      required:
+      - full_name
+      - id
+      - username
+    PatchedAnnouncement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        content:
+          type: string
+        publication_date:
+          type: string
+          format: date-time
+          readOnly: true
+        author:
+          type: integer
+          readOnly: true
+          nullable: true
+        author_details:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        target_user_types:
+          nullable: true
+          description: Optional. List of user type strings (e.g., ["PARENT", "STUDENT"])
+            to target.
+        target_grade_levels:
+          type: array
+          items:
+            type: integer
+          description: Optional. List of Grade Level IDs to target with this announcement.
+        target_grade_levels_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/GradeLevel'
+          readOnly: true
+        target_school_classes:
+          type: array
+          items:
+            type: integer
+          description: Optional. List of School Class IDs to target with this announcement.
+        target_school_classes_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/SchoolClassList'
+          readOnly: true
+        is_school_wide:
+          type: boolean
+          title: Is school-wide?
+          description: Marque se o comunicado é para toda a escola (ignora outros
+            direcionamentos específicos se marcado).
+        expiry_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Data após a qual o comunicado não será mais exibido proeminentemente.
+    PatchedAttendanceWrite:
+      type: object
+      properties:
+        enrollment:
+          type: integer
+        subject:
+          type: integer
+        date:
+          type: string
+          format: date
+          description: Data da aula para a qual a frequência está sendo registrada.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status2c9Enum'
+          description: |-
+            Status de presença do aluno na aula.
+
+            * `PRESENT` - Presente
+            * `ABSENT` - Ausente
+            * `JUSTIFIED_ABSENCE` - Ausência Justificada
+        notes:
+          type: string
+          nullable: true
+          description: Observações, como a justificativa para uma ausência.
+    PatchedDidacticMaterialWrite:
+      type: object
+      description: Serializer para criação e atualização de Materiais Didáticos (DidacticMaterial).
+      properties:
+        title:
+          type: string
+          description: Título do material didático.
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          description: Breve descrição do material.
+        file:
+          type: string
+          format: uri
+          description: Arquivo do material didático (PDF, DOCX, PPTX, etc.).
+        subject:
+          type: integer
+        school_class:
+          type: integer
+          nullable: true
+    PatchedEnrollment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: User account
+          writeOnly: true
+          description: ID of the student to be enrolled.
+        student_details:
+          allOf:
+          - $ref: '#/components/schemas/StudentSimple'
+          readOnly: true
+        school_class:
+          type: integer
+          writeOnly: true
+          description: ID of the school class to enroll the student into.
+        school_class_details:
+          allOf:
+          - $ref: '#/components/schemas/SchoolClassList'
+          readOnly: true
+        enrollment_date:
+          type: string
+          format: date
+          readOnly: true
+          description: Data em que a matrícula foi efetivada nesta turma.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EnrollmentStatusEnum'
+          default: ACTIVE
+          description: |-
+            Status of the enrollment. Defaults to 'Active' upon creation. Can be updated to 'Completed', 'Transferred Out', or 'Dropped Out'.
+
+            * `ACTIVE` - Ativa
+            * `COMPLETED` - Concluída
+            * `TRANSFERRED_OUT` - Transferido (Saída)
+            * `DROPPED_OUT` - Abandono/Evasão
+        status_display:
+          type: string
+          readOnly: true
+    PatchedFeeWrite:
+      type: object
+      properties:
+        student:
+          type: integer
+          title: User account
+          description: Aluno ao qual esta taxa se refere.
+        school_year:
+          type: integer
+          description: Ano letivo da taxa.
+        description:
+          type: string
+          description: 'Descrição da taxa (ex: Mensalidade Março/2024, Taxa de Material
+            Didático).'
+          maxLength: 255
+        due_date:
+          type: string
+          format: date
+          description: Data de vencimento.
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor original da taxa.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusE97Enum'
+          description: |-
+            Status atual da taxa.
+
+            * `PENDING` - Pendente
+            * `PAID` - Pago
+            * `OVERDUE` - Vencido
+            * `CANCELED` - Cancelado
+            * `PARTIALLY_PAID` - Parcialmente Pago
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações internas sobre a taxa (ex: negociações, isenções
+            parciais).'
+        payment_gateway_id:
+          type: string
+          nullable: true
+          description: ID externo do boleto/cobrança no gateway de pagamento.
+          maxLength: 255
+        barcode:
+          type: string
+          nullable: true
+          description: Código de barras do boleto, se aplicável.
+          maxLength: 255
+        discount_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor do desconto aplicado.
+        penalty_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor da multa por atraso.
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          description: Valor efetivamente pago.
+        payment_date:
+          type: string
+          format: date
+          nullable: true
+          description: Data em que o pagamento foi efetuado/confirmado.
+        edit_reason:
+          type: string
+          writeOnly: true
+          title: Motivo da Edição
+    PatchedGradeWrite:
+      type: object
+      properties:
+        enrollment:
+          type: integer
+        subject:
+          type: integer
+        grading_period:
+          type: integer
+        assessment_name:
+          type: string
+          description: 'Nome ou descrição da avaliação, ex: "Prova Bimestral 1", "Trabalho
+            em Grupo - Revolução Francesa", "Participação em Aula".'
+          maxLength: 100
+        grade_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Valor da nota obtida pelo aluno.
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+          nullable: true
+          description: 'Peso desta nota para cálculo de média ponderada (ex: 0.4 para
+            40%). Deixar em branco se não aplicável ou se a média for simples.'
+    PatchedMessageThreadDetail:
+      type: object
+      description: Serializer for the detailed view of a message thread, including
+        its participants.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        subject:
+          type: string
+          nullable: true
+          description: Optional subject for the conversation thread.
+          maxLength: 255
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageUser'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPaymentWrite:
+      type: object
+      description: Serializer para criação de Pagamentos (Payment) pela secretaria/administração.
+      properties:
+        fee:
+          type: integer
+          description: Taxa à qual este pagamento se refere.
+        payment_date:
+          type: string
+          format: date
+          description: Data em que o pagamento foi efetuado/registrado.
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor efetivamente pago nesta transação.
+        payment_method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          description: |-
+            Método utilizado para o pagamento.
+
+            * `BOLETO` - Boleto Bancário
+            * `CREDIT_CARD` - Cartão de Crédito
+            * `PIX` - PIX
+            * `CASH` - Dinheiro
+            * `BANK_TRANSFER` - Transferência Bancária
+            * `OTHER` - Outro
+        transaction_id:
+          type: string
+          nullable: true
+          description: ID da transação no gateway de pagamento ou referência interna/documento.
+          maxLength: 255
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações sobre o pagamento (ex: pago na secretaria, referente
+            a acordo).'
+    PatchedSchoolEventWrite:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título do evento.
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          description: Descrição detalhada do evento.
+        start_time:
+          type: string
+          format: date-time
+          description: Data e hora de início do evento.
+        end_time:
+          type: string
+          format: date-time
+          description: Data e hora de término do evento.
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          description: |-
+            Tipo do evento.
+
+            * `EXAM` - Prova/Avaliação
+            * `MEETING` - Reunião
+            * `HOLIDAY` - Feriado/Recesso
+            * `SCHOOL_ACTIVITY` - Atividade Escolar
+            * `OTHER` - Outro Evento
+        target_school_classes:
+          type: array
+          items:
+            type: integer
+        target_grade_levels:
+          type: array
+          items:
+            type: integer
+        is_school_wide:
+          type: boolean
+          title: Is school-wide?
+          description: Marque se o evento é para toda a escola (ignora turmas/séries
+            específicas).
+    PatchedSchoolYear:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        year:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: 'Ano letivo, ex: 2024.'
+        start_date:
+          type: string
+          format: date
+          description: Data de início do ano letivo.
+        end_date:
+          type: string
+          format: date
+          description: Data de término do ano letivo.
+        is_active:
+          type: boolean
+          title: Is active?
+          description: Indica se este é o ano letivo corrente/ativo no sistema.
+    PatchedStudent:
+      type: object
+      description: |-
+        Serializer para o modelo Student.
+        Inclui detalhes do usuário, série pretendida, documentos e associações de pais.
+      properties:
+        user:
+          type: integer
+          readOnly: true
+          title: User account
+        user_details:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        grade_level_pretended:
+          type: integer
+          readOnly: true
+          nullable: true
+        grade_level_pretended_details:
+          allOf:
+          - $ref: '#/components/schemas/GradeLevel'
+          readOnly: true
+        enrollment_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: Data em que a matrícula do aluno foi efetivada.
+        registration_status:
+          allOf:
+          - $ref: '#/components/schemas/RegistrationStatusEnum'
+          description: |-
+            Status atual do cadastro/matrícula do aluno.
+
+            * `PRE_REGISTERED` - Pré-Cadastrado
+            * `PENDING_VALIDATION` - Pendente de Validação
+            * `ACTIVE` - Ativo
+            * `INACTIVE` - Inativo
+            * `TRANSFERRED` - Transferido
+            * `GRADUATED` - Graduado
+            * `REJECTED` - Rejeitado
+        registration_status_display:
+          type: string
+          readOnly: true
+        school_entry_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: Data de ingresso do aluno na instituição (pode ser diferente
+            da data de matrícula no ano letivo atual).
+        allergies:
+          type: string
+          nullable: true
+          description: Informações sobre alergias do aluno.
+        observations:
+          type: string
+          nullable: true
+          description: Outras observações relevantes sobre o aluno.
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Motivo pelo qual a matrícula ou pré-cadastro foi rejeitado.
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentDocument'
+          readOnly: true
+        parent_associations:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentParentAssociation'
+          readOnly: true
+    PatchedStudentDocument:
+      type: object
+      description: Serializer para o modelo StudentDocument.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: User account
+          readOnly: true
+        document_type:
+          allOf:
+          - $ref: '#/components/schemas/DocumentTypeEnum'
+          readOnly: true
+          description: |-
+            Tipo do documento.
+
+            * `RG_ALUNO` - RG do Aluno
+            * `CPF_ALUNO` - CPF do Aluno
+            * `COMP_RESIDENCIA_RESP` - Comprovante de Residência do Responsável
+            * `CARTEIRA_VACINACAO` - Carteira de Vacinação
+            * `HIST_ESCOLAR` - Histórico Escolar da Escola Anterior
+            * `LAUDO_MEDICO` - Laudo Médico (para necessidades especiais)
+            * `FOTO_3X4` - Foto 3x4 Recente
+            * `RG_RESPONSAVEL` - RG do Responsável
+            * `CPF_RESPONSAVEL` - CPF do Responsável
+            * `DECLARACAO_QUITACAO_ESCOLA_ANT` - Declaração de Quitação da Escola Anterior
+            * `OUTRO` - Outro Documento
+        get_document_type_display:
+          type: string
+          readOnly: true
+        document_name:
+          type: string
+          readOnly: true
+          description: 'Nome descritivo do documento, ex: RG Frente, Comprovante Março/2024.
+            Preenchido se "Outro Documento" ou para especificar.'
+        file:
+          type: string
+          format: uri
+          readOnly: true
+          description: Arquivo do documento.
+        file_url:
+          type: string
+          readOnly: true
+        upload_date:
+          type: string
+          format: date
+          readOnly: true
+          description: Data em que o arquivo foi enviado.
+        validation_status:
+          allOf:
+          - $ref: '#/components/schemas/ValidationStatusEnum'
+          description: |-
+            Status da validação do documento pela secretaria.
+
+            * `PENDING` - Pendente de Validação
+            * `APPROVED` - Aprovado
+            * `REJECTED` - Rejeitado
+        get_validation_status_display:
+          type: string
+          readOnly: true
+        is_optional:
+          type: boolean
+          readOnly: true
+          title: Is optional?
+          description: Marque se este tipo de documento é opcional para a matrícula.
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações da secretaria sobre o documento (ex: motivo da
+            rejeição).'
+    PatchedUser:
+      type: object
+      description: |-
+        Serializer para o modelo User customizado.
+        Inclui campos selecionados do User e o UserProfile aninhado (somente leitura).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        user_type:
+          allOf:
+          - $ref: '#/components/schemas/UserTypeEnum'
+          description: |-
+            Designates the role of the user in the system.
+
+            * `PARENT` - Parent
+            * `STUDENT` - Student
+            * `TEACHER` - Teacher
+            * `STAFF` - Staff
+            * `ADMIN` - Admin
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/UserProfile'
+          readOnly: true
+    PatchedUserEmail:
+      type: object
+      description: Serializer for User model for email management.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        user_type:
+          allOf:
+          - $ref: '#/components/schemas/UserTypeEnum'
+          readOnly: true
+          description: |-
+            Designates the role of the user in the system.
+
+            * `PARENT` - Parent
+            * `STUDENT` - Student
+            * `TEACHER` - Teacher
+            * `STAFF` - Staff
+            * `ADMIN` - Admin
+    PatchedUserManagement:
+      type: object
+      description: |-
+        Serializer for User model for management by Direção/Admin.
+        Handles creation, update (specific fields), and detailed display.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Username. Required for new users. Read-only for existing users.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          description: User's email address. Must be unique if provided.
+        first_name:
+          type: string
+          description: User's first name.
+        last_name:
+          type: string
+          description: User's last name.
+        user_type:
+          allOf:
+          - $ref: '#/components/schemas/UserTypeEnum'
+          description: |-
+            Type of user account.
+
+            * `PARENT` - Parent
+            * `STUDENT` - Student
+            * `TEACHER` - Teacher
+            * `STAFF` - Staff
+            * `ADMIN` - Admin
+        user_type_display:
+          type: string
+          readOnly: true
+          description: Display name for the user type.
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        is_staff:
+          type: boolean
+          title: Staff status
+          description: Designates whether the user can log into this admin site.
+        is_superuser:
+          type: boolean
+          title: Superuser status
+          description: Designates that this user has all permissions without explicitly
+            assigning them.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        password:
+          type: string
+          writeOnly: true
+          description: Required for new users. Not updatable via this endpoint for
+            existing users.
+          maxLength: 128
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        fee:
+          type: integer
+          description: Taxa à qual este pagamento se refere.
+        fee_description:
+          type: string
+          readOnly: true
+        student_name:
+          type: string
+          readOnly: true
+        payment_date:
+          type: string
+          format: date
+          description: Data em que o pagamento foi efetuado/registrado.
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor efetivamente pago nesta transação.
+        payment_method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          description: |-
+            Método utilizado para o pagamento.
+
+            * `BOLETO` - Boleto Bancário
+            * `CREDIT_CARD` - Cartão de Crédito
+            * `PIX` - PIX
+            * `CASH` - Dinheiro
+            * `BANK_TRANSFER` - Transferência Bancária
+            * `OTHER` - Outro
+        payment_method_display:
+          type: string
+          readOnly: true
+        transaction_id:
+          type: string
+          nullable: true
+          description: ID da transação no gateway de pagamento ou referência interna/documento.
+          maxLength: 255
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações sobre o pagamento (ex: pago na secretaria, referente
+            a acordo).'
+        confirmed_by:
+          type: integer
+          nullable: true
+          description: Usuário (staff) que confirmou o recebimento do pagamento (se
+            aplicável).
+        confirmed_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount_paid
+      - confirmed_by_name
+      - created_at
+      - fee
+      - fee_description
+      - id
+      - payment_method
+      - payment_method_display
+      - student_name
+    PaymentMethodEnum:
+      enum:
+      - BOLETO
+      - CREDIT_CARD
+      - PIX
+      - CASH
+      - BANK_TRANSFER
+      - OTHER
+      type: string
+      description: |-
+        * `BOLETO` - Boleto Bancário
+        * `CREDIT_CARD` - Cartão de Crédito
+        * `PIX` - PIX
+        * `CASH` - Dinheiro
+        * `BANK_TRANSFER` - Transferência Bancária
+        * `OTHER` - Outro
+    PaymentWrite:
+      type: object
+      description: Serializer para criação de Pagamentos (Payment) pela secretaria/administração.
+      properties:
+        fee:
+          type: integer
+          description: Taxa à qual este pagamento se refere.
+        payment_date:
+          type: string
+          format: date
+          description: Data em que o pagamento foi efetuado/registrado.
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          description: Valor efetivamente pago nesta transação.
+        payment_method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          description: |-
+            Método utilizado para o pagamento.
+
+            * `BOLETO` - Boleto Bancário
+            * `CREDIT_CARD` - Cartão de Crédito
+            * `PIX` - PIX
+            * `CASH` - Dinheiro
+            * `BANK_TRANSFER` - Transferência Bancária
+            * `OTHER` - Outro
+        transaction_id:
+          type: string
+          nullable: true
+          description: ID da transação no gateway de pagamento ou referência interna/documento.
+          maxLength: 255
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações sobre o pagamento (ex: pago na secretaria, referente
+            a acordo).'
+      required:
+      - amount_paid
+      - fee
+      - payment_method
+    RegistrationStatusEnum:
+      enum:
+      - PRE_REGISTERED
+      - PENDING_VALIDATION
+      - ACTIVE
+      - INACTIVE
+      - TRANSFERRED
+      - GRADUATED
+      - REJECTED
+      type: string
+      description: |-
+        * `PRE_REGISTERED` - Pré-Cadastrado
+        * `PENDING_VALIDATION` - Pendente de Validação
+        * `ACTIVE` - Ativo
+        * `INACTIVE` - Inativo
+        * `TRANSFERRED` - Transferido
+        * `GRADUATED` - Graduado
+        * `REJECTED` - Rejeitado
+    RelationshipTypeEnum:
+      enum:
+      - FATHER
+      - MOTHER
+      - LEGAL_GUARDIAN
+      - FINANCIAL_GUARDIAN
+      - OTHER
+      type: string
+      description: |-
+        * `FATHER` - Pai
+        * `MOTHER` - Mãe
+        * `LEGAL_GUARDIAN` - Responsável Legal
+        * `FINANCIAL_GUARDIAN` - Responsável Financeiro
+        * `OTHER` - Outro
+    SchoolClassList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: 'Nome ou identificador da turma, ex: "Turma A", "101", "Manhã".'
+          maxLength: 100
+        grade_level_name:
+          type: string
+          readOnly: true
+        school_year_str:
+          type: string
+          readOnly: true
+        main_teacher_name:
+          type: string
+          readOnly: true
+      required:
+      - grade_level_name
+      - id
+      - main_teacher_name
+      - name
+      - school_year_str
+    SchoolEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          description: Título do evento.
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          description: Descrição detalhada do evento.
+        start_time:
+          type: string
+          format: date-time
+          description: Data e hora de início do evento.
+        end_time:
+          type: string
+          format: date-time
+          description: Data e hora de término do evento.
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          description: |-
+            Tipo do evento.
+
+            * `EXAM` - Prova/Avaliação
+            * `MEETING` - Reunião
+            * `HOLIDAY` - Feriado/Recesso
+            * `SCHOOL_ACTIVITY` - Atividade Escolar
+            * `OTHER` - Outro Evento
+        event_type_display:
+          type: string
+          readOnly: true
+        target_school_classes:
+          type: array
+          items:
+            type: integer
+          description: Selecione as turmas específicas para este evento. Deixe em
+            branco se for para uma série ou para toda a escola.
+        target_school_classes_display:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        target_grade_levels:
+          type: array
+          items:
+            type: integer
+          description: Selecione as séries específicas. Usado se não for para turmas
+            específicas ou toda a escola.
+        target_grade_levels_display:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        is_school_wide:
+          type: boolean
+          title: Is school-wide?
+          description: Marque se o evento é para toda a escola (ignora turmas/séries
+            específicas).
+        created_by:
+          type: integer
+          nullable: true
+          description: Usuário que criou o evento (Professor, Secretaria, Admin).
+        created_by_name:
+          type: string
+          readOnly: true
+      required:
+      - created_by_name
+      - end_time
+      - event_type
+      - event_type_display
+      - id
+      - start_time
+      - target_grade_levels_display
+      - target_school_classes_display
+      - title
+    SchoolEventWrite:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título do evento.
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          description: Descrição detalhada do evento.
+        start_time:
+          type: string
+          format: date-time
+          description: Data e hora de início do evento.
+        end_time:
+          type: string
+          format: date-time
+          description: Data e hora de término do evento.
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          description: |-
+            Tipo do evento.
+
+            * `EXAM` - Prova/Avaliação
+            * `MEETING` - Reunião
+            * `HOLIDAY` - Feriado/Recesso
+            * `SCHOOL_ACTIVITY` - Atividade Escolar
+            * `OTHER` - Outro Evento
+        target_school_classes:
+          type: array
+          items:
+            type: integer
+        target_grade_levels:
+          type: array
+          items:
+            type: integer
+        is_school_wide:
+          type: boolean
+          title: Is school-wide?
+          description: Marque se o evento é para toda a escola (ignora turmas/séries
+            específicas).
+      required:
+      - end_time
+      - event_type
+      - start_time
+      - title
+    SchoolYear:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        year:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: 'Ano letivo, ex: 2024.'
+        start_date:
+          type: string
+          format: date
+          description: Data de início do ano letivo.
+        end_date:
+          type: string
+          format: date
+          description: Data de término do ano letivo.
+        is_active:
+          type: boolean
+          title: Is active?
+          description: Indica se este é o ano letivo corrente/ativo no sistema.
+      required:
+      - end_date
+      - id
+      - start_date
+      - year
+    Status2c9Enum:
+      enum:
+      - PRESENT
+      - ABSENT
+      - JUSTIFIED_ABSENCE
+      type: string
+      description: |-
+        * `PRESENT` - Presente
+        * `ABSENT` - Ausente
+        * `JUSTIFIED_ABSENCE` - Ausência Justificada
+    StatusE97Enum:
+      enum:
+      - PENDING
+      - PAID
+      - OVERDUE
+      - CANCELED
+      - PARTIALLY_PAID
+      type: string
+      description: |-
+        * `PENDING` - Pendente
+        * `PAID` - Pago
+        * `OVERDUE` - Vencido
+        * `CANCELED` - Cancelado
+        * `PARTIALLY_PAID` - Parcialmente Pago
+    Student:
+      type: object
+      description: |-
+        Serializer para o modelo Student.
+        Inclui detalhes do usuário, série pretendida, documentos e associações de pais.
+      properties:
+        user:
+          type: integer
+          readOnly: true
+          title: User account
+        user_details:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        grade_level_pretended:
+          type: integer
+          readOnly: true
+          nullable: true
+        grade_level_pretended_details:
+          allOf:
+          - $ref: '#/components/schemas/GradeLevel'
+          readOnly: true
+        enrollment_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: Data em que a matrícula do aluno foi efetivada.
+        registration_status:
+          allOf:
+          - $ref: '#/components/schemas/RegistrationStatusEnum'
+          description: |-
+            Status atual do cadastro/matrícula do aluno.
+
+            * `PRE_REGISTERED` - Pré-Cadastrado
+            * `PENDING_VALIDATION` - Pendente de Validação
+            * `ACTIVE` - Ativo
+            * `INACTIVE` - Inativo
+            * `TRANSFERRED` - Transferido
+            * `GRADUATED` - Graduado
+            * `REJECTED` - Rejeitado
+        registration_status_display:
+          type: string
+          readOnly: true
+        school_entry_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          description: Data de ingresso do aluno na instituição (pode ser diferente
+            da data de matrícula no ano letivo atual).
+        allergies:
+          type: string
+          nullable: true
+          description: Informações sobre alergias do aluno.
+        observations:
+          type: string
+          nullable: true
+          description: Outras observações relevantes sobre o aluno.
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Motivo pelo qual a matrícula ou pré-cadastro foi rejeitado.
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentDocument'
+          readOnly: true
+        parent_associations:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentParentAssociation'
+          readOnly: true
+      required:
+      - documents
+      - enrollment_date
+      - grade_level_pretended
+      - grade_level_pretended_details
+      - parent_associations
+      - registration_status_display
+      - school_entry_date
+      - user
+      - user_details
+    StudentDocument:
+      type: object
+      description: Serializer para o modelo StudentDocument.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+          title: User account
+          readOnly: true
+        document_type:
+          allOf:
+          - $ref: '#/components/schemas/DocumentTypeEnum'
+          readOnly: true
+          description: |-
+            Tipo do documento.
+
+            * `RG_ALUNO` - RG do Aluno
+            * `CPF_ALUNO` - CPF do Aluno
+            * `COMP_RESIDENCIA_RESP` - Comprovante de Residência do Responsável
+            * `CARTEIRA_VACINACAO` - Carteira de Vacinação
+            * `HIST_ESCOLAR` - Histórico Escolar da Escola Anterior
+            * `LAUDO_MEDICO` - Laudo Médico (para necessidades especiais)
+            * `FOTO_3X4` - Foto 3x4 Recente
+            * `RG_RESPONSAVEL` - RG do Responsável
+            * `CPF_RESPONSAVEL` - CPF do Responsável
+            * `DECLARACAO_QUITACAO_ESCOLA_ANT` - Declaração de Quitação da Escola Anterior
+            * `OUTRO` - Outro Documento
+        get_document_type_display:
+          type: string
+          readOnly: true
+        document_name:
+          type: string
+          readOnly: true
+          description: 'Nome descritivo do documento, ex: RG Frente, Comprovante Março/2024.
+            Preenchido se "Outro Documento" ou para especificar.'
+        file:
+          type: string
+          format: uri
+          readOnly: true
+          description: Arquivo do documento.
+        file_url:
+          type: string
+          readOnly: true
+        upload_date:
+          type: string
+          format: date
+          readOnly: true
+          description: Data em que o arquivo foi enviado.
+        validation_status:
+          allOf:
+          - $ref: '#/components/schemas/ValidationStatusEnum'
+          description: |-
+            Status da validação do documento pela secretaria.
+
+            * `PENDING` - Pendente de Validação
+            * `APPROVED` - Aprovado
+            * `REJECTED` - Rejeitado
+        get_validation_status_display:
+          type: string
+          readOnly: true
+        is_optional:
+          type: boolean
+          readOnly: true
+          title: Is optional?
+          description: Marque se este tipo de documento é opcional para a matrícula.
+        notes:
+          type: string
+          nullable: true
+          description: 'Observações da secretaria sobre o documento (ex: motivo da
+            rejeição).'
+      required:
+      - document_name
+      - document_type
+      - file
+      - file_url
+      - get_document_type_display
+      - get_validation_status_display
+      - id
+      - is_optional
+      - student
+      - upload_date
+    StudentParentAssociation:
+      type: object
+      description: Serializer para o modelo StudentParentAssociation.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        parent_user:
+          type: integer
+          title: Parent/guardian user
+          description: Usuário do tipo "Pai/Responsável".
+        parent_user_details:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        relationship_type:
+          allOf:
+          - $ref: '#/components/schemas/RelationshipTypeEnum'
+          description: |-
+            Tipo de relação entre o responsável e o aluno.
+
+            * `FATHER` - Pai
+            * `MOTHER` - Mãe
+            * `LEGAL_GUARDIAN` - Responsável Legal
+            * `FINANCIAL_GUARDIAN` - Responsável Financeiro
+            * `OTHER` - Outro
+        relationship_type_display:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - parent_user
+      - parent_user_details
+      - relationship_type
+      - relationship_type_display
+    StudentReport:
+      type: object
+      description: |-
+        Serializer for generating a CSV report of students.
+        Flattens related User and UserProfile data.
+        Includes derived fields for current grade level and active enrollment school year.
+      properties:
+        user_id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        cpf:
+          type: string
+          readOnly: true
+          nullable: true
+        date_of_birth:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        student_registration_status:
+          type: string
+          readOnly: true
+        student_enrollment_date:
+          type: string
+          format: date
+          readOnly: true
+          description: Student's initial enrollment date in the school.
+        current_grade_level_name:
+          type: string
+          readOnly: true
+          nullable: true
+          description: Current grade level name, derived from active enrollment in
+            the specified school year.
+        active_enrollment_school_year:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: School year of the active enrollment used for determining current
+            grade level.
+      required:
+      - active_enrollment_school_year
+      - cpf
+      - current_grade_level_name
+      - date_of_birth
+      - email
+      - full_name
+      - student_enrollment_date
+      - student_registration_status
+      - user_id
+      - username
+    StudentSimple:
+      type: object
+      description: Serializer simplificado para o modelo Student, focado em identificação.
+      properties:
+        user:
+          type: integer
+          title: User account
+        full_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+      required:
+      - email
+      - full_name
+      - user
+    Subject:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: 'Nome da disciplina, ex: "Matemática".'
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          description: Descrição ou ementa da disciplina.
+      required:
+      - id
+      - name
+    TeacherAssignment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        teacher:
+          type: integer
+          description: Professor atribuído.
+        teacher_info:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        school_class:
+          type: integer
+        school_class_info:
+          allOf:
+          - $ref: '#/components/schemas/SchoolClassList'
+          readOnly: true
+        subject:
+          type: integer
+        subject_info:
+          allOf:
+          - $ref: '#/components/schemas/Subject'
+          readOnly: true
+        school_year:
+          type: integer
+          description: Ano letivo para o qual esta atribuição é válida.
+        school_year_info:
+          allOf:
+          - $ref: '#/components/schemas/SchoolYear'
+          readOnly: true
+      required:
+      - id
+      - school_class
+      - school_class_info
+      - school_year
+      - school_year_info
+      - subject
+      - subject_info
+      - teacher
+      - teacher_info
+    TokenBlacklist:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - refresh
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    User:
+      type: object
+      description: |-
+        Serializer para o modelo User customizado.
+        Inclui campos selecionados do User e o UserProfile aninhado (somente leitura).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        user_type:
+          allOf:
+          - $ref: '#/components/schemas/UserTypeEnum'
+          description: |-
+            Designates the role of the user in the system.
+
+            * `PARENT` - Parent
+            * `STUDENT` - Student
+            * `TEACHER` - Teacher
+            * `STAFF` - Staff
+            * `ADMIN` - Admin
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/UserProfile'
+          readOnly: true
+      required:
+      - id
+      - profile
+      - username
+    UserEmail:
+      type: object
+      description: Serializer for User model for email management.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        user_type:
+          allOf:
+          - $ref: '#/components/schemas/UserTypeEnum'
+          readOnly: true
+          description: |-
+            Designates the role of the user in the system.
+
+            * `PARENT` - Parent
+            * `STUDENT` - Student
+            * `TEACHER` - Teacher
+            * `STAFF` - Staff
+            * `ADMIN` - Admin
+      required:
+      - first_name
+      - id
+      - last_name
+      - user_type
+      - username
+    UserManagement:
+      type: object
+      description: |-
+        Serializer for User model for management by Direção/Admin.
+        Handles creation, update (specific fields), and detailed display.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Username. Required for new users. Read-only for existing users.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          description: User's email address. Must be unique if provided.
+        first_name:
+          type: string
+          description: User's first name.
+        last_name:
+          type: string
+          description: User's last name.
+        user_type:
+          allOf:
+          - $ref: '#/components/schemas/UserTypeEnum'
+          description: |-
+            Type of user account.
+
+            * `PARENT` - Parent
+            * `STUDENT` - Student
+            * `TEACHER` - Teacher
+            * `STAFF` - Staff
+            * `ADMIN` - Admin
+        user_type_display:
+          type: string
+          readOnly: true
+          description: Display name for the user type.
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        is_staff:
+          type: boolean
+          title: Staff status
+          description: Designates whether the user can log into this admin site.
+        is_superuser:
+          type: boolean
+          title: Superuser status
+          description: Designates that this user has all permissions without explicitly
+            assigning them.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        last_login:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        password:
+          type: string
+          writeOnly: true
+          description: Required for new users. Not updatable via this endpoint for
+            existing users.
+          maxLength: 128
+      required:
+      - date_joined
+      - id
+      - last_login
+      - user_type_display
+      - username
+    UserProfile:
+      type: object
+      description: |-
+        Serializer para o modelo UserProfile.
+        Inclui todos os campos do modelo.
+      properties:
+        user:
+          type: integer
+        cpf:
+          type: string
+          nullable: true
+          description: 'Formato: XXX.XXX.XXX-XX'
+          maxLength: 14
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 20
+      required:
+      - user
+    UserTypeEnum:
+      enum:
+      - PARENT
+      - STUDENT
+      - TEACHER
+      - STAFF
+      - ADMIN
+      type: string
+      description: |-
+        * `PARENT` - Parent
+        * `STUDENT` - Student
+        * `TEACHER` - Teacher
+        * `STAFF` - Staff
+        * `ADMIN` - Admin
+    ValidationStatusEnum:
+      enum:
+      - PENDING
+      - APPROVED
+      - REJECTED
+      type: string
+      description: |-
+        * `PENDING` - Pendente de Validação
+        * `APPROVED` - Aprovado
+        * `REJECTED` - Rejeitado
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

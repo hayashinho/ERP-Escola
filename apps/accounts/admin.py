@@ -16,40 +16,25 @@ class CustomUserAdmin(BaseUserAdmin):
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
-        # Adicionar um novo set de campos para user_type ou adicioná-lo a um existente
-        ('Role', {'fields': ('user_type',)}),
+        ('Role & School Access', {'fields': ('user_type', 'school_units_access')}), # Added school_units_access
     )
-    # Se você tiver muitos campos, pode ser útil adicionar user_type a list_filter também
     list_filter = BaseUserAdmin.list_filter + ('user_type',)
-    # Adicionar campos para a funcionalidade de adicionar usuário
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         (None, {
             'classes': ('wide',),
-            'fields': ('user_type',),
+            'fields': ('user_type',), # school_units_access might be too complex for add_fieldsets, handle post-creation
         }),
     )
+    filter_horizontal = ('groups', 'user_permissions', 'school_units_access',) # Added school_units_access
 
 # Registrar o modelo User com a classe CustomUserAdmin
 admin.site.register(User, CustomUserAdmin)
 
-# Registrar o modelo UserProfile
-# Uma abordagem mais avançada seria usar um Inline para editar UserProfile junto com User.
-# Por exemplo:
-# class UserProfileInline(admin.StackedInline):
-#     model = UserProfile
-#     can_delete = False
-#     verbose_name_plural = 'Profile'
-#
-# class CustomUserAdminWithProfile(CustomUserAdmin):
-#     inlines = (UserProfileInline,)
-#
-# admin.site.unregister(User) # Desregistrar o User anterior se já registrado
-# admin.site.register(User, CustomUserAdminWithProfile) # Registrar com o inline
-
-# Por enquanto, vamos registrar UserProfile separadamente para simplicidade.
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'cpf', 'phone_number', 'date_of_birth')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'cpf')
+    list_display = ('user', 'cpf', 'phone_number', 'date_of_birth', 'active_school_unit') # Added active_school_unit
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'cpf', 'active_school_unit__name') # Added active_school_unit
+    list_filter = ('active_school_unit',) # Added active_school_unit
+    raw_id_fields = ('user', 'active_school_unit',) # Added active_school_unit, user was already good candidate
     # Para performance, é bom selecionar o usuário relacionado
-    list_select_related = ('user',)
+    list_select_related = ('user', 'active_school_unit') # Added active_school_unit
